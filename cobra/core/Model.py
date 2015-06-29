@@ -313,6 +313,10 @@ class Model(Object):
         self.objective = objectives
 
     @property
+    def _compartments(self):
+        return frozenset(metabolite.compartment for metabolite in self.metabolites)
+
+    @property
     def objective(self):
         return {reaction: reaction.objective_coefficient
                 for reaction in self.reactions

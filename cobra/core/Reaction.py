@@ -491,8 +491,8 @@ class Reaction(Object):
         """Generate a human readable reaction string"""
         def format(number):
             return "" if number == 1 else str(number).rstrip(".") + " "
-        reactant_dict = {}
-        product_dict = {}
+        # reactant_dict = {}
+        # product_dict = {}
         id_type = 'id'
         if use_metabolite_names:
             id_type = 'name'
@@ -531,7 +531,11 @@ class Reaction(Object):
 
     def get_compartments(self):
         """lists compartments the metabolites are in"""
-        return list({x.compartment for x in self._metabolites})
+        return list(self.compartments)
+
+    @property
+    def compartments(self):
+        return frozenset(x.compartment for x in self._metabolites)
 
     def _associate_gene(self, cobra_gene):
         """Associates a cobra.Gene object with a cobra.Reaction.
@@ -573,7 +577,7 @@ class Reaction(Object):
             model = None
         else:
             model = self._model
-        original_str = "" + reaction_str  # copy
+        # original_str = "" + reaction_str  # copy
         found_compartments = compartment_finder.findall(reaction_str)
         if len(found_compartments) == 1:
             compartment = found_compartments[0]

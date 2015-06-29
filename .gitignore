@@ -16,3 +16,5 @@ libglpk.a
 .ipynb_checkpoints
 examples/faq.py
 documentation_builder/test*\.*
+
+*.sw[op]
