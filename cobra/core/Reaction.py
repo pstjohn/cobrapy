@@ -529,9 +529,13 @@ class Reaction(Object):
         # filter out 0 values
         return {k: v for k, v in iteritems(reaction_element_dict) if v != 0}
 
+    @property
+    def compartments(self):
+        return frozenset((x.compartment for x in self._metabolites))
+
     def get_compartments(self):
         """lists compartments the metabolites are in"""
-        return list({x.compartment for x in self._metabolites})
+        return list(self.compartments)
 
     def _associate_gene(self, cobra_gene):
         """Associates a cobra.Gene object with a cobra.Reaction.
