@@ -83,12 +83,32 @@ class DictList(list):
             search_function = re.compile(search_function)
         if hasattr(search_function, "findall"):
             for i in self:
-                if search_function.findall(select_attribute(i)) != []: yield i
+                try: 
+                    if search_function.findall(select_attribute(i)) != []:
+                        yield i
+                except TypeError:
+                    pass
         else:
             for i in self:
                 if search_function(select_attribute(i)): yield i
 
     def query(self, search_function, attribute="id"):
+        """query the list, returning another DictList
+
+        search_function: used to select which objects to return
+            * a string, in which case any object.attribute containing
+              the string will be returned
+
+            * a compiled regular expression
+
+            * a function which takes one argument and returns True
+              for desired values
+
+        attribute: the attribute to be searched for (default is 'id').
+                   If this is None, the object itself is used.
+
+        returns: a list of objects which match the query
+        """
         results = self.__class__()
         results._extend_nocheck(self.iquery(search_function, attribute))
         return results
