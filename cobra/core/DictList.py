@@ -1,3 +1,4 @@
+from copy import copy, deepcopy
 import re
 from six import string_types, iteritems
 from itertools import islice
@@ -54,8 +55,8 @@ class DictList(list):
         """
         return [getattr(i, attribute) for i in self]
 
-    def iquery(self, search_function, attribute="id"):
-        """query the list, returning an iterable
+    def query(self, search_function, attribute="id"):
+        """query the list
 
         search_function: used to select which objects to return
             * a string, in which case any object.attribute containing
@@ -82,15 +83,13 @@ class DictList(list):
         if isinstance(search_function, str):
             search_function = re.compile(search_function)
         if hasattr(search_function, "findall"):
-            for i in self:
-                if search_function.findall(select_attribute(i)) != []: yield i
+            matches = (i for i in self
+                       if search_function.findall(select_attribute(i)) != [])
         else:
-            for i in self:
-                if search_function(select_attribute(i)): yield i
-
-    def query(self, search_function, attribute="id"):
+            matches = (i for i in self
+                       if search_function(select_attribute(i)))
         results = self.__class__()
-        results._extend_nocheck(self.iquery(search_function, attribute))
+        results._extend_nocheck(matches)
         return results
 
     def _replace_on_id(self, new_object):
