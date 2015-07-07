@@ -1,7 +1,117 @@
 import re
 from warnings import warn
+from ast import parse as ast_parse, Name, And, Or, BitOr, BitAnd, BinOp, \
+    BoolOp, Attribute, Expression, NodeTransformer
+from keyword import kwlist
 
 from .Species import Species
+
+
+keywords = list(kwlist)
+keywords.remove("and")
+keywords.remove("or")
+keywords.extend(("True", "False"))
+keyword_re = re.compile(r"(?=\b(%s)\b)" % "|".join(keywords))
+number_start_re = re.compile(r"(?=\b[0-9])")
+
+replacements = (
+    (".", "__COBRA_DOT__"),
+    ("'", "__COBRA_SQUOTE__"),
+    ('"', "__COBRA_DQUOTE__"),
+    (":", "__COBRA_COLON__"),
+    ("/", "__COBRA_FSLASH__"),
+    ("\\", "__COBRA_BSLASH"),
+    ("-", "__COBRA_DASH__"),
+    ("=", "__COBRA_EQ__")
+)
+
+
+# functions for gene reaction rules
+def ast2str(expr, level=0):
+    """convert compiled ast to gene_reaction_rule str"""
+    if isinstance(expr, Expression):
+        return ast2str(expr.body, 0) if hasattr(expr, "body") else ""
+    elif isinstance(expr, Name):
+        return expr.id
+    elif isinstance(expr, BoolOp):
+        op = expr.op
+        if isinstance(op, Or):
+            str_exp = " or ".join(ast2str(i, level + 1) for i in expr.values)
+        elif isinstance(op, And):
+            str_exp = " and ".join(ast2str(i, level + 1) for i in expr.values)
+        else:
+            raise TypeError("unsupported operation " + op.__class__.__name)
+        return "(" + str_exp + ")" if level else str_exp
+    elif expr is None:
+        return ""
+    else:
+        raise TypeError("unsupported operation  " + repr(expr))
+
+
+def eval_gpr(expr, knockouts):
+    """evaluate compiled ast of gene_reaction_rule with knockouts"""
+    if isinstance(expr, Expression):
+        return eval_gpr(expr.body, knockouts)
+    elif isinstance(expr, Name):
+        return expr.id not in knockouts
+    elif isinstance(expr, BoolOp):
+        op = expr.op
+        if isinstance(op, Or):
+            return any(eval_gpr(i, knockouts) for i in expr.values)
+        elif isinstance(op, And):
+            return all(eval_gpr(i, knockouts) for i in expr.values)
+        else:
+            raise TypeError("unsupported operation " + op.__class__.__name__)
+    elif expr is None:
+        return True
+    else:
+        raise TypeError("unsupported operation  " + repr(expr))
+
+
+class GPRCleaner(NodeTransformer):
+    """Parses compiled ast of a gene_reaction_rule and identifies genes
+
+    Parts of the tree are rewritten to allow periods in gene ID's and
+    bitwise boolean operations"""
+    def __init__(self):
+        NodeTransformer.__init__(self)
+        self.gene_set = set()
+
+    def visit_Name(self, node):
+        if node.id.startswith("__cobra_escape__"):
+            node.id = node.id[16:]
+        for replacement in replacements:
+            node.id = node.id.replace(replacement[1], replacement[0])
+        self.gene_set.add(node.id)
+        return node
+
+    def visit_BinOp(self, node):
+        self.generic_visit(node)
+        if isinstance(node.op, BitAnd):
+            return BoolOp(And(), (node.left, node.right))
+        elif isinstance(node.op, BitOr):
+            return BoolOp(Or(), (node.left, node.right))
+        else:
+            raise TypeError("unsupported operation '%s'" %
+                            node.op.__class__.__name__)
+
+
+def parse_gpr(str_expr):
+    """parse gpr into AST
+
+    returns: (ast_tree, {gene_ids})"""
+    str_expr = str_expr.strip()
+    if len(str_expr) == 0:
+        return None, set()
+    for replacement in replacements:
+        str_expr = str_expr.replace(replacement[0], replacement[1])
+    escaped_str = keyword_re.sub("__cobra_escape__", str_expr)
+    escaped_str = number_start_re.sub("__cobra_escape__", escaped_str)
+    tree = ast_parse(escaped_str, "<string>", "eval")
+    cleaner = GPRCleaner()
+    cleaner.visit(tree)
+    eval_gpr(tree, set())  # ensure the rule can be evaluated
+    return tree, cleaner.gene_set
 
 
 class Gene(Species):
@@ -28,12 +138,14 @@ class Gene(Species):
         the gene with 'False' in the gene association, else replace the gene
         with 'True'
 
-        .. note :: Simulating gene knockouts is much better handled by
-                   cobra.manipulation.delete_model_genes
+        .. deprecated :: 0.4
+            Use cobra.manipulation.delete_model_genes to simulate knockouts
+            and cobra.manipulation.remove_genes to remove genes from
+            the model.
 
         """
+        warn("Use cobra.manipulation.remove_genes instead")
         if model is not None:
-            warn("passing the model in is unnecessary and deprecated")
             if model != self._model:
                 raise Exception("%s is a member of %s, not %s" %
                                 (repr(self), repr(self._model), repr(model)))
