@@ -292,6 +292,18 @@ def create_cobra_model_from_sbml_file(sbml_filename, old_sbml=False, legacy_meta
             reaction.subsystem = reaction_note_dict['SUBSYSTEM'][0]   
 
 
+        # Unused notes should be added to the reaction notes dictionary
+        standard_notes = frozenset(['GENE ASSOCIATION', 'GENE LIST', 'GENES',
+                                    'LOCUS', 'TRANSCRIPT', 'ABBREVIATION',
+                                    'SUBSYSTEM'])
+
+        present_notes = frozenset(reaction_note_dict.iterkeys())
+
+        unused_notes = present_notes.difference(standard_notes)
+
+        reaction.notes.update({key: reaction_note_dict[key] for key in
+                               unused_notes})
+
 
     #Now, add all of the reactions to the model.
     cobra_model.description = sbml_model.getId()
