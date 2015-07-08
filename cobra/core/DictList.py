@@ -54,7 +54,7 @@ class DictList(list):
         """
         return [getattr(i, attribute) for i in self]
 
-    def iquery(self, search_function, attribute="id"):
+    def iquery(self, search_function, attribute="id", ignorecase=True):
         """query the list, returning an iterable
 
         search_function: used to select which objects to return
@@ -69,6 +69,9 @@ class DictList(list):
         attribute: the attribute to be searched for (default is 'id').
                    If this is None, the object itself is used.
 
+        ignorecase: if search_function is a string, specify whether or not case
+                    should be ignored in the search query
+
         returns: a list of objects which match the query
         """
         if attribute is None:
@@ -80,7 +83,11 @@ class DictList(list):
 
         # if the search_function is a regular expression
         if isinstance(search_function, str):
-            search_function = re.compile(search_function)
+            if ignorecase:
+                search_function = re.compile(search_function, re.IGNORECASE)
+            else:
+                search_function = re.compile(search_function)
+
         if hasattr(search_function, "findall"):
             for i in self:
                 try: 
@@ -92,7 +99,7 @@ class DictList(list):
             for i in self:
                 if search_function(select_attribute(i)): yield i
 
-    def query(self, search_function, attribute="id"):
+    def query(self, search_function, attribute="id", ignorecase=True):
         """query the list, returning another DictList
 
         search_function: used to select which objects to return
@@ -107,10 +114,14 @@ class DictList(list):
         attribute: the attribute to be searched for (default is 'id').
                    If this is None, the object itself is used.
 
+        ignorecase: if search_function is a string, specify whether or not case
+                    should be ignored in the search query
+
         returns: a list of objects which match the query
         """
         results = self.__class__()
-        results._extend_nocheck(self.iquery(search_function, attribute))
+        results._extend_nocheck(self.iquery(search_function, attribute,
+                                            ignorecase))
         return results
 
     def _replace_on_id(self, new_object):
