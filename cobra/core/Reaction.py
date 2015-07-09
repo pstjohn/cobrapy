@@ -493,19 +493,16 @@ class Reaction(Object):
     def reaction(self, value):
         return self.build_reaction_from_string(value)
 
-    def build_reaction_string(self, use_metabolite_names=False):
+    def build_reaction_string(self):
         """Generate a human readable reaction string"""
         def format(number):
             return "" if number == 1 else str(number).rstrip(".") + " "
-        reactant_dict = {}
-        product_dict = {}
-        id_type = 'id'
-        if use_metabolite_names:
-            id_type = 'name'
         reactant_bits = []
         product_bits = []
         for the_metabolite, coefficient in iteritems(self._metabolites):
-            name = str(getattr(the_metabolite, id_type))
+            # Here the metabolite string is set globally by
+            # Metabolite._str_method
+            name = str(the_metabolite)
             if coefficient > 0:
                 product_bits.append(format(coefficient) + name)
             else:

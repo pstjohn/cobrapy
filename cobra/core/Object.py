@@ -58,7 +58,9 @@ class Object(object):
         return self.id[i:j]
 
     def __repr__(self):
-        return "<%s %s at 0x%x>" % (self.__class__.__name__, self.id, id(self))
+        return "<%s %s at 0x%x>" % (self.__class__.__name__, self.__str__(), id(self))
 
+    _str_method = 'id'
     def __str__(self):
-        return str(self.id)
+        return str(self.__getattribute__(self._str_method))
+
