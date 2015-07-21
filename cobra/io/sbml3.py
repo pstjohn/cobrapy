@@ -129,7 +129,7 @@ def parse_xml_into_model(xml, number=float):
     model = Model(model_id)
 
     model.compartments = {c.get("id"): c.get("name") for c in
-                          xml.findall(ns(COMPARTMENT_XPATH))}
+                           xml.findall(ns(COMPARTMENT_XPATH))}
 
     # add metabolites
     for species in xml_model.findall(ns(SPECIES_XPATH) % 'false'):

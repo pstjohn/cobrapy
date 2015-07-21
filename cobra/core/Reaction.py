@@ -493,7 +493,7 @@ class Reaction(Object):
     def reaction(self, value):
         return self.build_reaction_from_string(value)
 
-    def build_reaction_string(self):
+    def build_reaction_string(self, reverse=False):
         """Generate a human readable reaction string"""
         def format(number):
             return "" if number == 1 else str(number).rstrip(".") + " "
@@ -508,16 +508,18 @@ class Reaction(Object):
             else:
                 reactant_bits.append(format(abs(coefficient)) + name)
 
-        reaction_string = ' + '.join(reactant_bits)
+        reactant_str = ' + '.join(reactant_bits)
         if not self.reversibility:
             if self.lower_bound < 0 and self.upper_bound <= 0:
-                reaction_string += ' <-- '
+                arrow = ' <-- '
             else:
-                reaction_string += ' --> '
+                arrow = ' --> '
         else:
-            reaction_string += ' <=> '
-        reaction_string += ' + '.join(product_bits)
-        return reaction_string
+            arrow = ' <=> '
+        product_str = ' + '.join(product_bits)
+
+        if not reverse: return reactant_str + arrow + product_str
+        else: return product_str + arrow + reactant_str
 
     def check_mass_balance(self):
         """Makes sure that the reaction is elementally-balanced.

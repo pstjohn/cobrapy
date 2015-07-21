@@ -1,6 +1,8 @@
 from warnings import warn
 import re
 
+import pandas as pd
+
 from .Species import Species
 
 # Numbers are not required because of the |(?=[A-Z])? block. See the
@@ -136,6 +138,83 @@ class Metabolite(Species):
                 x.remove_from_model()
         else:
             raise Exception(method + " is not 'subtractive' or 'destructive'")
+
+
+    def summary(self, ignore_inactive=0.01):
+        """ Print a summary of the reactions which produce and consume this
+        metabolite """
+
+        def rxn_generator():
+            for rxn in self.reactions:
+                return_dict = {
+                    'id' : rxn.id,
+                }
+
+                # Correct the direction of the reaction. A positive flux
+                # produces the metabolite
+
+                ## SELF IS PRODUCTED
+                if (self in rxn.products) and (rxn.x >= 0):
+                    return_dict['reaction'] = rxn.reaction
+                    return_dict['flux'] = rxn.x
+                elif (self in rxn.reactants) and (rxn.x < 0):
+                    # Invert reaction direction
+                    return_dict['reaction'] = (
+                        rxn.build_reaction_string(reverse=True))
+                        
+                    return_dict['flux'] = -rxn.x
+
+                ## SELF IS CONSUMED
+                elif (self in rxn.products) and (rxn.x <= 0):
+                    return_dict['reaction'] = (
+                        rxn.build_reaction_string(reverse=True))
+                    return_dict['flux'] = rxn.x
+                elif (self in rxn.reactants) and (rxn.x > 0):
+                    # Invert reaction direction
+                    return_dict['reaction'] = rxn.reaction
+                    return_dict['flux'] = -rxn.x
+
+                else:
+                    # Probably an export reaction with no flux
+                    return_dict['reaction'] = rxn.reaction
+                    return_dict['flux'] = rxn.x
+
+                yield return_dict
+
+        flux_summary = pd.DataFrame(rxn_generator())
+
+        producing = flux_summary[flux_summary.flux > 0].copy()
+        consuming = flux_summary[flux_summary.flux < 0].copy()
+
+        for df in [producing, consuming]:
+            df['percent'] = df.flux / df.flux.sum()
+            df.drop(df[df['percent'] < ignore_inactive].index, axis=0, inplace=True)
+            df['reaction'] = df['reaction'].map(lambda x: x[:54])
+            df['id'] = df['id'].map(lambda x: x[:8])
+            # df['%'] = df['%'].map('{:.1f}%'.format)
+
+        producing.sort('percent', ascending=False, inplace=True)
+        consuming.sort('percent', ascending=False, inplace=True)
+
+        head = "PRODUCING REACTIONS -- " + self.name[:30]
+        print head
+        print "-"*len(head)
+        print "{0:^6} {1:>6} {2:>8} {3:^54}".format('%', 'FLUX', 'RXN ID',
+                                                    'REACTION')
+
+        for row in producing.iterrows():
+            print "{0.percent:6.1%} {0.flux:6.0f} {0.id:>8} {0.reaction:>54}".format(row[1])
+
+
+        print
+        print "CONSUMING REACTIONS -- " + self.name[:30]
+        print "-"*len(head)
+        print "{0:^6} {1:>6} {2:>8} {3:^54}".format('%', 'FLUX', 'RXN ID',
+                                                    'REACTION')
+
+        for row in consuming.iterrows():
+            print "{0.percent:6.1%} {0.flux:6.0f} {0.id:>8} {0.reaction:>54}".format(row[1])
+
 
 
 elements_and_molecular_weights = {

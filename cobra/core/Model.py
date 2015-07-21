@@ -40,8 +40,8 @@ class Model(Object):
             self.genes = DictList()
             self.reactions = DictList()  # A list of cobra.Reactions
             self.metabolites = DictList()  # A list of cobra.Metabolites
+            self.compartments = {} # For SBML input-output
             # genes based on their ids {Gene.id: Gene}
-            self.compartments = {}
             self.solution = Solution(None)
 
     def __add__(self, other_model):
@@ -311,6 +311,9 @@ class Model(Object):
     def change_objective(self, objectives):
         """Change the model objective"""
         self.objective = objectives
+
+    def get_compartments(self):
+        return frozenset((x.compartment for x in self.metabolites))
 
     @property
     def objective(self):
