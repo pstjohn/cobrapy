@@ -286,6 +286,12 @@ class Model(Object):
 
     def repair(self, rebuild_index=True, rebuild_relationships=True):
         """Update all indexes and pointers in a model"""
+
+        # Assert all id's are unique
+        metabolite_ids = set((m.id for m in self.metabolites))
+        assert len(metabolite_ids) == len(self.metabolites), \
+            "Duplicate found in metabolite IDs"
+
         if rebuild_index:  # DictList indexes
             self.reactions._generate_index()
             self.metabolites._generate_index()

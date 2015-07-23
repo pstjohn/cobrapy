@@ -54,7 +54,7 @@ class DictList(list):
         """
         return [getattr(i, attribute) for i in self]
 
-    def iquery(self, search_function, attribute="id", ignorecase=True):
+    def iquery(self, search_function, attribute=None, ignorecase=True):
         """query the list, returning an iterable
 
         search_function: used to select which objects to return
@@ -99,7 +99,7 @@ class DictList(list):
             for i in self:
                 if search_function(select_attribute(i)): yield i
 
-    def query(self, search_function, attribute="id", ignorecase=True):
+    def query(self, search_function, attribute=None, ignorecase=True):
         """query the list, returning another DictList
 
         search_function: used to select which objects to return
