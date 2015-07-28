@@ -148,6 +148,21 @@ class Reaction(Object):
             if self._model.solution.status != "optimal":
                 raise Exception("model solution was not optimal")
             raise e  # Not sure what the exact problem was
+    
+    @property
+    def bounds(self):
+        """ A more convienient bounds structure than seperate upper and lower
+        bounds """
+
+        return (self.lower_bound, self.upper_bound)
+
+    @bounds.setter
+    def bounds(self, value):
+        """ Set the bounds directly from a tuple """
+
+        self.lower_bound = value[0]
+        self.upper_bound = value[1]
+
 
     @property
     def reversibility(self):

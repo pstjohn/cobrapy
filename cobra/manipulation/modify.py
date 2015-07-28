@@ -205,7 +205,7 @@ def revert_to_reversible(cobra_model, update_solution=True):
     cobra_model.remove_reactions(reverse_reactions)
     # fix the solution
     if update_solution and cobra_model.solution is not None and \
-            cobra_model.solution.status != "NA":
+            cobra_model.solution.status not in ["NA", "infeasible"]:
         x_dict = cobra_model.solution.x_dict
         # Check if the model was optimized while it was still reversible. If so
         # then the solution does not need to be fixed.
