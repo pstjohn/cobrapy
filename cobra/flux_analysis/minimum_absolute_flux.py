@@ -45,8 +45,13 @@ def optimize_maf(cobra_model, fraction_of_optimum=1.0, **kwargs):
         revert_to_reversible(cobra_model)
         cobra_model.objective = original_objective
         
-        if solution:
+        try:
             solution.f = sum([coeff * reaction.x for reaction, coeff in
                               cobra_model.objective.iteritems()])
+        except Exception:
+            # Sadly cobra will raise the ambiguous "Exception" when trying to
+            # access a reaction.x if none exists, requiring this incredibly
+            # vague exception block.
+            pass
 
     return solution
