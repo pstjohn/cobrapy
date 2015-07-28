@@ -9,7 +9,6 @@ from .Solution import Solution
 from .Reaction import Reaction
 from .DictList import DictList
 
-
 # Note, when a reaction is added to the Model it will no longer keep personal
 # instances of its Metabolites, it will reference Model.metabolites to improve
 # performance.  When doing this, take care to monitor metabolite coefficients.
@@ -43,6 +42,7 @@ class Model(Object):
             self.compartments = {} # For SBML input-output
             # genes based on their ids {Gene.id: Gene}
             self.solution = Solution(None)
+            self.solution.model = self
 
     def __add__(self, other_model):
         """Adds two models. +
@@ -226,10 +226,19 @@ class Model(Object):
         from .ArrayBasedModel import ArrayBasedModel
         return ArrayBasedModel(self, deepcopy_model=deepcopy_model, **kwargs)
 
-    def optimize(self, objective_sense='maximize', **kwargs):
+    def optimize(self, objective_sense='maximize',
+                 minimize_absolute_flux=False,
+                 **kwargs):
+
         r"""Optimize model using flux balance analysis
 
         objective_sense: 'maximize' or 'minimize'
+
+        minimize_absolute_flux: False, or float
+            Whether or not to invoke optimize_maf in order to generate
+            parsimonious flux balance solutions. Float indicates the percent of
+            the maximum objective function to maintain while minimizing overall
+            flux.
 
         solver: 'glpk', 'cglpk', 'gurobi', 'cplex' or None
 
@@ -250,7 +259,12 @@ class Model(Object):
                    specified with the appropriate keyword argument.
 
         """
-        solution = optimize(self, objective_sense=objective_sense, **kwargs)
+        if minimize_absolute_flux:
+            from ..flux_analysis import optimize_maf
+            solution = optimize_maf(self, float(minimize_absolute_flux),
+                                        **kwargs)
+        else: 
+            solution = optimize(self, objective_sense=objective_sense, **kwargs)
         self.solution = solution
         return solution
 
@@ -312,6 +326,7 @@ class Model(Object):
                 e._model = self
         if self.solution is None:
             self.solution = Solution(None)
+            self.solution.model = self
         return
 
     def change_objective(self, objectives):

@@ -1,7 +1,7 @@
 from ..manipulation.modify import convert_to_irreversible, revert_to_reversible
 
 
-def optimize_maf(cobra_model, fraction_of_optimum=1.0):
+def optimize_maf(cobra_model, fraction_of_optimum=1.0, **kwargs):
     """optimize while minimizing absolute flux
     
     This function implements the strategy of maximizing an objective (ie
@@ -22,25 +22,31 @@ def optimize_maf(cobra_model, fraction_of_optimum=1.0):
     # Convert to irreversible, so all reactions will have a positive flux
     convert_to_irreversible(cobra_model)
 
-    # Maximize the existing objective function.
-    cobra_model.optimize()
-    if cobra_model.solution.f is None:
-        raise Exception("model could not be solved")
+    solution = None
+    try: 
+        # Maximize the existing objective function.
+        solution = cobra_model.optimize(minimize_absolute_flux=False, **kwargs)
 
-    # Set the lower bound of the objective function to its 
-    # maximum value x fraction_of_optimum
-    for reaction in original_objective.iterkeys():
-        reaction.lower_bound = reaction.x * fraction_of_optimum
+        # Minimizing absolute flux not relevant for infeasible solution
+        if cobra_model.solution.f is not None:
 
-    # Set the new objective as the minimization of all fluxes
-    cobra_model.objective = {r : -1 for r in cobra_model.reactions}
-    solution = cobra_model.optimize()
+            # Set the lower bound of the objective function to its 
+            # maximum value x fraction_of_optimum
+            for reaction in original_objective.iterkeys():
+                reaction.lower_bound = reaction.x * fraction_of_optimum
 
-    # Return the model to its original state
-    revert_to_reversible(cobra_model)
-    cobra_model.objective = original_objective
-    
-    solution.f = sum([coeff * reaction.x for reaction, coeff in
-                      cobra_model.objective.iteritems()])
+            # Set the new objective as the minimization of all fluxes
+            cobra_model.objective = {r : -1 for r in cobra_model.reactions}
+            solution = cobra_model.optimize(minimize_absolute_flux=False,
+                                            **kwargs)
+
+    finally:
+        # Return the model to its original state
+        revert_to_reversible(cobra_model)
+        cobra_model.objective = original_objective
+        
+        if solution:
+            solution.f = sum([coeff * reaction.x for reaction, coeff in
+                              cobra_model.objective.iteritems()])
 
     return solution

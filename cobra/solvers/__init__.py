@@ -118,4 +118,6 @@ def optimize(cobra_model, solver=None, **kwargs):
             kwargs["quadratic_component"] is not None
         solver = get_solver_name(qp=qp)
 
-    return solver_dict[solver].solve(cobra_model, **kwargs)
+    solution = solver_dict[solver].solve(cobra_model, **kwargs)
+    solution.model = cobra_model
+    return solution

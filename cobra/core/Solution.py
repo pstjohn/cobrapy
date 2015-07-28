@@ -1,3 +1,5 @@
+import json
+
 class Solution(object):
     """Stores the solution from optimizing a cobra.Model. This is
     used to provide a single interface to results from different
@@ -28,10 +30,13 @@ class Solution(object):
         self.y = y
         self.y_dict = y_dict
 
-    def dress_results(self, model):
-        """.. warning :: deprecated"""
-        from warning import warn
-        warn("unnecessary to call this deprecated function")
+    def save(self, filename=None):
+        if filename == None:
+            # Will raise an attribute error if there's no attached solution
+            filename = self.model.id + '_solution.json'
+        with open(filename, 'wb') as f:
+            json.dump(self.x_dict, f)
+        return
 
     def __repr__(self):
         if self.f is None:
