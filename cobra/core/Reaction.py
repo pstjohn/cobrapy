@@ -67,13 +67,10 @@ class Reaction(Object):
 
         self.objective_coefficient = self.lower_bound = 0.
         self.upper_bound = 1000.
-        # Either None or if this reaction is irreversible then
-        self.reflection = None
-        # a reaction in the model that is essentially self * -1
         # Used during optimization.  Indicates whether the
-        self.variable_kind = 'continuous'
         # variable is modeled as continuous, integer, binary, semicontinous, or
         # semiinteger.
+        self.variable_kind = 'continuous'
 
     # read-only
     @property
@@ -537,13 +534,17 @@ class Reaction(Object):
         else: return product_str + arrow + reactant_str
 
     def check_mass_balance(self):
-        """Makes sure that the reaction is elementally-balanced.
+        """Compute mass and charge balance for the reaction
 
         returns a dict of {element: amount} for unbalanced elements.
+        "charge" is treated as an element in this dict
         This should be empty for balanced reactions.
         """
         reaction_element_dict = defaultdict(int)
         for metabolite, coefficient in self._metabolites.items():
+            if metabolite.charge is not None:
+                reaction_element_dict["charge"] += \
+                    coefficient * metabolite.charge
             for element, amount in iteritems(metabolite.elements):
                 reaction_element_dict[element] += coefficient * amount
         # filter out 0 values
