@@ -54,7 +54,8 @@ class DictList(list):
         """
         return [getattr(i, attribute) for i in self]
 
-    def iquery(self, search_function, attribute=None, ignorecase=True):
+    def iquery(self, search_function, attribute=None, ignorecase=True,
+               exceptions=None):
         """query the list, returning an iterable
 
         search_function: used to select which objects to return
@@ -71,6 +72,10 @@ class DictList(list):
 
         ignorecase: if search_function is a string, specify whether or not case
                     should be ignored in the search query
+
+        exceptions: An exception (or list of exceptions) for which a function
+                    search should be allowed to raise. Only those function
+                    calls returning an error-free True will be returned.
 
         returns: a list of objects which match the query
         """
@@ -97,9 +102,15 @@ class DictList(list):
                     pass
         else:
             for i in self:
-                if search_function(select_attribute(i)): yield i
+                try:
+                    if search_function(select_attribute(i)): yield i
+                except exceptions:
+                    # Allow certain function failures, i.e. a missing KeyError,
+                    # not to fail the search
+                    pass
 
-    def query(self, search_function, attribute=None, ignorecase=True):
+    def query(self, search_function, attribute=None, ignorecase=True,
+               exceptions=None):
         """query the list, returning another DictList
 
         search_function: used to select which objects to return
@@ -117,11 +128,15 @@ class DictList(list):
         ignorecase: if search_function is a string, specify whether or not case
                     should be ignored in the search query
 
+        exceptions: An exception (or list of exceptions) for which a function
+                    search should be allowed to raise. Only those function
+                    calls returning an error-free True will be returned.
+
         returns: a list of objects which match the query
         """
         results = self.__class__()
         results._extend_nocheck(self.iquery(search_function, attribute,
-                                            ignorecase))
+                                            ignorecase, exceptions))
         return results
 
     def _replace_on_id(self, new_object):

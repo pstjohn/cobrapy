@@ -203,7 +203,7 @@ class Metabolite(Species):
                                                     'REACTION')
 
         for row in producing.iterrows():
-            print "{0.percent:6.1%} {0.flux:6.0f} {0.id:>8} {0.reaction:>54}".format(row[1])
+            print "{0.percent:6.1%} {0.flux:6.2g} {0.id:>8} {0.reaction:>54}".format(row[1])
 
 
         print
@@ -213,7 +213,7 @@ class Metabolite(Species):
                                                     'REACTION')
 
         for row in consuming.iterrows():
-            print "{0.percent:6.1%} {0.flux:6.0f} {0.id:>8} {0.reaction:>54}".format(row[1])
+            print "{0.percent:6.1%} {0.flux:6.2g} {0.id:>8} {0.reaction:>54}".format(row[1])
 
 
 
