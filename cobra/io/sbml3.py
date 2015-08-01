@@ -196,6 +196,9 @@ def construct_gpr_xml(parent, expression):
 
 
 def annotate_cobra_from_sbml(cobra_element, sbml_element):
+    sbo_term = sbml_element.get("sboTerm")
+    if sbo_term is not None:
+        cobra_element.annotation["SBO"] = sbo_term
     meta_id = get_attrib(sbml_element, "metaid")
     if meta_id is None:
         return
@@ -242,6 +245,9 @@ def annotate_sbml_from_cobra(sbml_element, cobra_element):
     bag = SubElement(SubElement(rdf_desc, ns("bqbiol:is")),
                      ns("rdf:Bag"))
     for provider, identifiers in sorted(iteritems(cobra_element.annotation)):
+        if provider == "SBO":
+            set_attrib(sbml_element, "sboTerm", identifiers)
+            continue
         if isinstance(identifiers, string_types):
             identifiers = (identifiers,)
         for identifier in identifiers:
@@ -278,7 +284,9 @@ def parse_xml_into_model(xml, number=float):
     for sbml_gene in xml_model.iterfind(GENES_XPATH):
         gene_id = get_attrib(sbml_gene, "fbc:id").replace(SBML_DOT, ".")
         gene = Gene(clip(gene_id, "G_"))
-        gene.name = get_attrib(sbml_gene, "fbc:label")
+        gene.name = get_attrib(sbml_gene, "fbc:name")
+        if gene.name is None:
+            gene.name = get_attrib(sbml_gene, "fbc:label")
         annotate_cobra_from_sbml(gene, sbml_gene)
         model.genes.append(gene)
 
@@ -596,6 +604,12 @@ def validate_sbml_model(filename):
             if not str_id[0].isalpha():
                 err("%s does not start with alphabet character" % id_repr)
 
+    # check SBO terms
+    for element in xml.findall(".//*[@sboTerm]"):
+        sbo_term = element.get("sboTerm")
+        if not sbo_term.startswith("SBO:"):
+            warn("sboTerm '%s' does not begin with 'SBO:'" % sbo_term)
+
     # ensure can be made into model
     with catch_warnings(record=True) as warning_list:
         simplefilter("always")
@@ -647,7 +661,7 @@ def write_sbml_model(cobra_model, filename, use_fbc_package=True, **kwargs):
         xmlfile = BZ2File(filename, "wb")
     else:
         xmlfile = open(filename, "wb")
-    ElementTree(xml).write(xmlfile, encoding="UTF-8")
+    ElementTree(xml).write(xmlfile, **write_args)
     if should_close:
         xmlfile.close()
 
