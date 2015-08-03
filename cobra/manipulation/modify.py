@@ -196,7 +196,7 @@ def revert_to_reversible(cobra_model, update_solution=True):
         return
 
     update_solution = update_solution and cobra_model.solution is not None \
-        and cobra_model.solution.status != "NA"
+        and cobra_model.solution.status not in ["NA", "infeasible"]
 
     if update_solution:
         x_dict = cobra_model.solution.x_dict

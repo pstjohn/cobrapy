@@ -32,13 +32,19 @@ def optimize_maf(cobra_model, fraction_of_optimum=1.0, **kwargs):
 
             # Set the lower bound of the objective function to its 
             # maximum value x fraction_of_optimum
+            original_lower_bounds = {}
             for reaction in original_objective.iterkeys():
+                original_lower_bounds[reaction] = float(reaction.lower_bound)
                 reaction.lower_bound = reaction.x * fraction_of_optimum
 
             # Set the new objective as the minimization of all fluxes
             cobra_model.objective = {r : -1 for r in cobra_model.reactions}
             solution = cobra_model.optimize(minimize_absolute_flux=False,
                                             **kwargs)
+
+            # Reset lower bounds
+            for reaction, lb in original_lower_bounds.iteritems():
+                reaction.lower_bound = lb
 
     finally:
         # Return the model to its original state
