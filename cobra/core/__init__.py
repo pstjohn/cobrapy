@@ -19,3 +19,16 @@ else:
     warn("ArrayBasedModel requires scipy")
     del warn
 del scipy
+
+try:
+    import pandas
+except:
+    pandas = None
+
+if pandas:
+    from .DataframeBasedModel import DataframeBasedModel
+else:
+    from warnings import warn
+    warn("DataframeBasedModel requires pandas")
+    del warn
+del pandas

@@ -180,7 +180,7 @@ def convert_to_irreversible(cobra_model):
     cobra_model.add_reactions(reactions_to_add)
 
 
-def revert_to_reversible(cobra_model, update_solution=True):
+def revert_to_reversible(cobra_model, update_solution=True, allow_missing=False):
     """This function will convert a reversible model made by
     convert_to_irreversible into a reversible model.
 
@@ -201,23 +201,41 @@ def revert_to_reversible(cobra_model, update_solution=True):
     if update_solution:
         x_dict = cobra_model.solution.x_dict
 
+    missing_reactions = []
     for reverse in reverse_reactions:
         forward_id = reverse.notes.pop("reflection")
-        forward = cobra_model.reactions.get_by_id(forward_id)
-        forward.lower_bound = -reverse.upper_bound
 
-        # update the solution dict
-        if update_solution:
-            if reverse.id in x_dict:
-                x_dict[forward_id] -= x_dict.pop(reverse.id)
+        try:
+            forward = cobra_model.reactions.get_by_id(forward_id)
+            forward.lower_bound = -reverse.upper_bound
 
-        if "reflection" in forward.notes:
-            forward.notes.pop("reflection")
+            # update the solution dict
+            if update_solution:
+                if reverse.id in x_dict:
+                    x_dict[forward_id] -= x_dict.pop(reverse.id)
+
+            if "reflection" in forward.notes:
+                forward.notes.pop("reflection")
+
+        except KeyError:
+            if not allow_missing: 
+                raise KeyError(
+                    "Forward reaction {} not found in model".format(
+                        forward_id))
+            else:
+                # Remove 'reflection' tag, as forward reaction is no longer in
+                # the model
+                reverse_reaction.notes.pop("reflection")
+                
+                # Add the reaction to a list of reactions not to remove.
+                missing_reactions += [reverse]
+
 
     # Since the metabolites and genes are all still in
     # use we can do this faster removal step.  We can
     # probably speed things up here.
-    cobra_model.remove_reactions(reverse_reactions)
+    cobra_model.remove_reactions(
+        set(reverse_reactions).difference(set(missing_reactions)))
 
     # update the solution vector
     if update_solution:
