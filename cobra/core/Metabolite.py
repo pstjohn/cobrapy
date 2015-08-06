@@ -152,32 +152,18 @@ class Metabolite(Species):
 
                 # Correct the direction of the reaction. A positive flux
                 # produces the metabolite
+                return_dict['flux'] = rxn.x * rxn.metabolites[self]
+                
 
-                ## SELF IS PRODUCTED
-                if (self in rxn.products) and (rxn.x >= 0):
+                # Correct the reaction direction for reactions running in
+                # reverse
+                if rxn.x >= 0:
                     return_dict['reaction'] = rxn.reaction
-                    return_dict['flux'] = rxn.x
-                elif (self in rxn.reactants) and (rxn.x < 0):
+
+                elif rxn.x < 0:
                     # Invert reaction direction
                     return_dict['reaction'] = (
                         rxn.build_reaction_string(reverse=True))
-                        
-                    return_dict['flux'] = -rxn.x
-
-                ## SELF IS CONSUMED
-                elif (self in rxn.products) and (rxn.x <= 0):
-                    return_dict['reaction'] = (
-                        rxn.build_reaction_string(reverse=True))
-                    return_dict['flux'] = rxn.x
-                elif (self in rxn.reactants) and (rxn.x > 0):
-                    # Invert reaction direction
-                    return_dict['reaction'] = rxn.reaction
-                    return_dict['flux'] = -rxn.x
-
-                else:
-                    # Probably an export reaction with no flux
-                    return_dict['reaction'] = rxn.reaction
-                    return_dict['flux'] = rxn.x
 
                 yield return_dict
 
