@@ -6,6 +6,7 @@ with bit pattern trees. Bioinformatics 24: 2229-2235.
 """
 
 import os
+import sys
 import contextlib
 import tempfile
 import shutil
@@ -36,8 +37,8 @@ def make_temp_directory():
 
 
 def create_model_files(cobra_model, temp_dir, deepcopy_model=True):
-    """ Write stochiometry data, metabolite, and reaction names to temporary
-    files in preparation for calling efmtool
+    """ Write stochiometry data, reaction reversibilities, metabolite, and
+    reaction names to temporary files in preparation for calling efmtool
 
     """
     
@@ -47,19 +48,54 @@ def create_model_files(cobra_model, temp_dir, deepcopy_model=True):
             cobra_model, deepcopy_model=deepcopy_model)
         stoich_mat = cobra_model.S.toarray()
 
+    # Stoichiometric Matrix
     np.savetxt(temp_dir + '/stoich.txt', stoich_mat, delimiter='\t')
 
+    # Reaction reversibilities
     np.savetxt(temp_dir + '/revs.txt', 
                np.array([r.reversibility for r in cobra_model.reactions]),
                delimiter='\t', fmt='%d', newline='\t')
 
+    # Reaction Names
     with open(temp_dir + '/rnames.txt', 'w') as f:
         f.write('\t'.join(('"{}"'.format(r.id) for r in cobra_model.reactions)))
 
+    # Metabolite Names
     with open(temp_dir + '/mnames.txt', 'w') as f:
         f.write('\t'.join(('"{}"'.format(m.id) for m in cobra_model.metabolites)))
 
 
+def run_process(process):
+    """ Run a bash process in python, printing lines from STDOUT to the python
+    shell as the become available
+
+    """
+
+    process = subprocess.Popen(process, stdout=subprocess.PIPE, bufsize=1)
+    for line in iter(process.stdout.readline, b''):
+        sys.stdout.write(line)
+        sys.stdout.flush()
+    process.stdout.close()
+    process.wait()
+
+
+def read_double_out(cobra_model, out_file):
+    """ Read the output file generated from EMFTool. Returns a numpy array or
+    pandas dataframe (if pandas can be loaded)
+    
+    """
+    with open(out_file, 'rb') as f:
+        out_arr = np.fromstring(f.read()[13:], dtype='>d').reshape(
+            (-1, len(cobra_model.reactions))).T
+        out_arr = np.array(out_arr, dtype=np.float64)
+
+    if pandas:
+        out_arr = pd.DataFrame(
+            out_arr, index=(r.id for r in cobra_model.reactions), 
+            columns=('EM{}'.format(i) for i in 
+                     xrange(1, out_arr.shape[1] + 1)))
+
+    return out_arr
 
 def calculate_elementary_modes(cobra_model, opts=None):
     """ Run the java efmtool on the given cobra_model. Opts is a dictionary
@@ -74,6 +110,9 @@ def calculate_elementary_modes(cobra_model, opts=None):
         try: out_file = opts.pop('out_file')
         except KeyError: out_file = temp_dir + '/out.bin'
 
+        # Default options for the EMFtool. I don't recommend changing any of
+        # these, even though the function is set up for this. This tool hasn't
+        # been tested for any options other than these
         default_opts = {
             'kind'             : 'stoichiometry',
             'stoich'           : temp_dir + '/stoich.txt',
@@ -94,7 +133,6 @@ def calculate_elementary_modes(cobra_model, opts=None):
 
         default_opts.update(opts)
 
-
         # Create a list of arguments to pass to the python subprocess module
         def opt_gen():
             for opt, val in default_opts.iteritems():
@@ -105,36 +143,22 @@ def calculate_elementary_modes(cobra_model, opts=None):
                 if opt == 'out': yield out_file
 
         # Run the EFMtool, outputting STDOUT to python.
-        process = subprocess.Popen(efm_command + list(opt_gen()),
-                                   stdout=subprocess.PIPE)
-        while True:
-            output = process.stdout.readline()
-            if output == '' and process.poll() is not None:
-                break
-            if output:
-                print output.strip()
+        run_process(efm_command + list(opt_gen()))
 
-        if   'binary-doubles' in default_opts['out']: dtype='>d'
-        elif 'binary-boolean' in default_opts['out']:
-            raise RuntimeError('binary-boolean not supported')
-        with open(out_file, 'rb') as f:
-            out_arr = np.fromstring(f.read()[13:], dtype=dtype).reshape(
-                (-1, len(cobra_model.reactions))).T
-            out_arr = np.array(out_arr, dtype=np.float64)
+        if 'binary-doubles' in default_opts['out']:
+            out_arr = read_double_out(cobra_model, out_file)
 
-        if pandas:
-            out_arr = pd.DataFrame(
-                out_arr, index=(r.id for r in cobra_model.reactions), 
-                columns=('EM{}'.format(i) for i in 
-                         xrange(1, out_arr.shape[1] + 1)))
-
-        return out_arr.T # I prefer to have model reactions as columns.
+        # I prefer to have model reactions as columns.
+        return out_arr.T
 
 
 
 if __name__ == "__main__":
 
-    # TODO: These should get moved to the test suite
+    # TODO: These should get moved to the test suite.
+    # This just builds a test model (from
+    # http://www.csb.ethz.ch/tools/software/efmtool/documentation.html) and
+    # calculates the elementary flux modes.
 
     from cobra.core import Metabolite, Reaction, Model
 
@@ -173,7 +197,9 @@ if __name__ == "__main__":
     model.reactions.R10.build_reaction_from_string('C + D --> E + P')
 
 
-    calculate_elementary_modes(model, {'out' : 'binary-boolean'})
+    out = calculate_elementary_modes(model)
+
+    print out
 
 
 
