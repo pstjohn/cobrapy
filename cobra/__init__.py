@@ -18,9 +18,11 @@ _warnings.formatwarning = _warn_format
 
 from .version import get_version
 __version__ = get_version()
+
+from . import io
 from .core import Object, Metabolite, Gene, Reaction, Model, \
     DictList, Species
-from . import io, flux_analysis
+from . import flux_analysis
 
 try:
     from .core import ArrayBasedModel

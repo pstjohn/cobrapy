@@ -24,7 +24,7 @@ except ImportError:
     pandas = False
 
 
-from ..core import ArrayBasedModel
+from cobra.core import ArrayBasedModel
 
 @contextlib.contextmanager
 def make_temp_directory():
