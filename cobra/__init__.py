@@ -19,10 +19,12 @@ _warnings.formatwarning = _warn_format
 from .version import get_version
 __version__ = get_version()
 
-from . import io
+# Odd bug on peregrine, I need to import libsbml prior to loading scipy.sparse
+import libsbml
+
 from .core import Object, Metabolite, Gene, Reaction, Model, \
     DictList, Species
-from . import flux_analysis
+from . import io, flux_analysis
 
 try:
     from .core import ArrayBasedModel
