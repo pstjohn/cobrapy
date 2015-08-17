@@ -1,5 +1,6 @@
 from warnings import warn
 import re
+from copy import deepcopy
 
 import pandas as pd
 
@@ -182,7 +183,7 @@ class Metabolite(Species):
         producing.sort('percent', ascending=False, inplace=True)
         consuming.sort('percent', ascending=False, inplace=True)
 
-        head = "PRODUCING REACTIONS -- " + self.name[:30]
+        head = "PRODUCING REACTIONS -- " + self.name[:55]
         print head
         print "-"*len(head)
         print "{0:^6} {1:>6} {2:>8} {3:^54}".format('%', 'FLUX', 'RXN ID',
@@ -193,13 +194,63 @@ class Metabolite(Species):
 
 
         print
-        print "CONSUMING REACTIONS -- " + self.name[:30]
+        print "CONSUMING REACTIONS -- " + self.name[:55]
         print "-"*len(head)
         print "{0:^6} {1:>6} {2:>8} {3:^54}".format('%', 'FLUX', 'RXN ID',
                                                     'REACTION')
 
         for row in consuming.iterrows():
             print "{0.percent:6.1%} {0.flux:6.2g} {0.id:>8} {0.reaction:>54}".format(row[1])
+
+
+    def __add__(self, other_metabolite):
+        """ Create a metabolite pool by adding together two metabolites. Useful
+        for seeing flux into and out of groups of metabolites.
+        
+        Using a bunch of internal class methods here. Honestly not sure why
+        some of them are protected, but this should likely only get used to
+        call Metabolite.summary() on a pooled metabolite.
+
+        """
+        pool = deepcopy(self)
+        other = deepcopy(other_metabolite)
+
+        # Pop off the compartment subscript, if applicable.
+        pool.id = re.sub('_.$', '', self.id) + '_' + re.sub('_.$', '', other.id)
+
+        # (A + B + C) should yeild a name of "A and B and C Pool". Need to pull
+        # off the pool each time a new one is added.
+        old_name = re.sub(' Pool', '', self.name)
+        if ' and ' in old_name:
+            old_name = re.sub(' and ', ', ', old_name)
+            old_name += ',' # Oxford comma
+        pool.name = (' and '.join([old_name, other.name])) + ' Pool'
+
+        model = self.model.copy()
+
+        for reaction in set(self.reactions).union(other.reactions):
+            pooled_reaction = deepcopy(reaction)
+            pooled_reaction._model = model
+
+            # Find the combined stochiometry for the pooled metabolite in each
+            # reaction
+            stoich_self = 0 # Initialize stoich counters
+            stoich_other = 0
+            for metabolite in pooled_reaction.metabolites.keys():
+                if metabolite.id == self.id:
+                    stoich_self = pooled_reaction._metabolites.pop(metabolite)
+                if metabolite.id == other.id:
+                    stoich_other = pooled_reaction._metabolites.pop(metabolite)
+            pooled_reaction.add_metabolites({pool : stoich_self + stoich_other})
+    
+        return pool
+        
+
+        
+
+
+
+
 
 
 

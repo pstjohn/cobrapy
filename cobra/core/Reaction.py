@@ -284,7 +284,6 @@ class Reaction(Object):
         self._genes = set()
 
     def __setstate__(self, state):
-
         """Probably not necessary to set _model as the cobra.Model that
         contains self sets the _model attribute for all metabolites and genes
         in the reaction.
