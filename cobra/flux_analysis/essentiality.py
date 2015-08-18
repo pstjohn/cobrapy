@@ -1,6 +1,6 @@
 from warnings import warn
 try:
-    from cobra.flux_analysis.moma import moma
+    from cobra.flux_analysis.moma_old import moma
 except:
     warn("moma does not appear to be functional on your system")
 from cobra.manipulation import initialize_growth_medium
