@@ -8,6 +8,10 @@ for instance including customized objective functions.  The
 cobra.flux_analysis.moma script or the parsimonious fba seem to suffer from
 this - this will be my attempt to fix these issues by introducing additional
 dependencies.
+
+
+# TODO: make `x_wildtype` a dict, so that reactions can be completely removed
+# from the model without destroying the moma evalutions.
 """
 
 import itertools
@@ -21,7 +25,19 @@ class MOMAModel(Model):
 
     def __init__(self, wt_model, deepcopy_model=False):
         """ Calculates the results of reaction knockouts using the technique of
-        Minimization of Metabolic Adjustment. 
+        Minimization of Metabolic Adjustment. This class is intended to act as
+        a drop-in replacement for cobra.Model, where knockout simulations
+        performed by 
+
+        >>> moma_model = MOMAModel(wt_model)
+        >>> moma_model.reactions.XX.knockout()
+        >>> moma_model.optimize()
+
+        Are instead simulated via MOMA to minimize distance from the flux state
+        specified in wt_model's objective.
+    
+        Parameters:
+        ===========
 
         wt_model: cobra.Model
             A model describing the wild-type organism. Should likely be
@@ -248,8 +264,12 @@ def generate_model_matricies(cobra_model):
 
 
 # TODO move these to cobra.tests
-# if __name__ == "__main__":
+if __name__ == "__main__":
 
-#     import cobra.test
-#     model = cobra.test.create_test_model('textbook')
-#     test_moma_model = MOMAModel(model, deepcopy_model=True)
+    import cobra.test
+    model = cobra.test.create_test_model('textbook')
+    test_moma_model = MOMAModel(model, deepcopy_model=True)
+
+    # knocks out a reaction and runs the moma evaluation
+    test_moma_model.reactions.PDH.knock_out()
+    test_moma_model.optimize()
