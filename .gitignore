@@ -16,5 +16,6 @@ libglpk.a
 .ipynb_checkpoints
 examples/faq.py
 documentation_builder/test*\.*
+cobra/elementary_flux_modes/mhsCalculator/*
 
 *.sw[o,p]

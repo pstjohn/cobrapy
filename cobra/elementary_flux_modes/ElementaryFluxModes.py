@@ -6,11 +6,6 @@ with bit pattern trees. Bioinformatics 24: 2229-2235.
 """
 
 import os
-import sys
-import contextlib
-import tempfile
-import shutil
-import subprocess
 
 efm_lib_dir = os.path.dirname(os.path.abspath(__file__)) + '/efmtool'
 efm_command =  ['java', '-jar', efm_lib_dir + '/metabolic-efm-all.jar']
@@ -24,16 +19,8 @@ except ImportError:
     pandas = False
 
 
-from cobra.core import ArrayBasedModel
-
-@contextlib.contextmanager
-def make_temp_directory():
-    """ Create a temporary working directory for efmtool input and output files
-
-    """
-    temp_dir = tempfile.mkdtemp(prefix='efmtool_tmp', dir='.')
-    yield temp_dir
-    shutil.rmtree(temp_dir)
+from ..core import ArrayBasedModel
+from .utils import make_temp_directory, run_process
 
 
 def create_model_files(cobra_model, temp_dir, deepcopy_model=True):
@@ -65,19 +52,6 @@ def create_model_files(cobra_model, temp_dir, deepcopy_model=True):
         f.write('\t'.join(('"{}"'.format(m.id) for m in cobra_model.metabolites)))
 
 
-def run_process(process):
-    """ Run a bash process in python, printing lines from STDOUT to the python
-    shell as the become available
-
-    """
-
-    process = subprocess.Popen(process, stdout=subprocess.PIPE, bufsize=1)
-    for line in iter(process.stdout.readline, b''):
-        sys.stdout.write(line)
-        sys.stdout.flush()
-    process.stdout.close()
-    process.wait()
-
 
 def read_double_out(cobra_model, out_file):
     """ Read the output file generated from EMFTool. Returns a numpy array or
@@ -97,13 +71,14 @@ def read_double_out(cobra_model, out_file):
 
     return out_arr
 
-def calculate_elementary_modes(cobra_model, opts=None):
+def calculate_elementary_modes(cobra_model, opts=None, verbose=True):
     """ Run the java efmtool on the given cobra_model. Opts is a dictionary
-    which overwrites the default options """
+    which overwrites the default options. Verbose specifies if emftool output
+    should be redirected to the python shell """
 
     if opts is None: opts = {}
 
-    with make_temp_directory() as temp_dir:
+    with make_temp_directory('efmtool') as temp_dir:
 
         create_model_files(cobra_model, temp_dir)
 
@@ -121,12 +96,12 @@ def calculate_elementary_modes(cobra_model, opts=None):
             'meta'             : temp_dir + '/mnames.txt',
             'arithmetic'       : 'double',
             'zero'             : 1E-10,
-            'out'              : 'binary-doubles', # TODO support binary output
+            'out'              : 'binary-doubles', # TODO support binary output?
             'compression'      : 'default',
             'log'              : 'console',
             'level'            : 'INFO',
             'maxthreads'       : -1,
-            'normalize'        : 'min',
+            'normalize'        : 'max',
             'adjacency-method' : 'pattern-tree-minzero',
             'rowordering'      : 'MostZerosOrAbsLexMin',
         }
@@ -143,7 +118,7 @@ def calculate_elementary_modes(cobra_model, opts=None):
                 if opt == 'out': yield out_file
 
         # Run the EFMtool, outputting STDOUT to python.
-        run_process(efm_command + list(opt_gen()))
+        run_process(efm_command + list(opt_gen()), verbose=verbose)
 
         if 'binary-doubles' in default_opts['out']:
             out_arr = read_double_out(cobra_model, out_file)
@@ -197,7 +172,7 @@ if __name__ == "__main__":
     model.reactions.R10.build_reaction_from_string('C + D --> E + P')
 
 
-    out = calculate_elementary_modes(model)
+    out = calculate_elementary_modes(model, verbose=False)
 
     print out
 
