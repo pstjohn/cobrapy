@@ -163,8 +163,7 @@ class Metabolite(Species):
 
                 elif rxn.x < 0:
                     # Invert reaction direction
-                    return_dict['reaction'] = (
-                        rxn.build_reaction_string(reverse=True))
+                    return_dict['reaction'] = (-rxn).reaction
 
                 yield return_dict
 
