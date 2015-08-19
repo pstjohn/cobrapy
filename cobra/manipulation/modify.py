@@ -43,6 +43,48 @@ def escape_ID(cobra_model):
             rxn._gene_reaction_rule = ast2str(gene_renamer.visit(rule))
 
 
+def get_growth_medium(cobra_model):
+    """Searches a cobra model for the currently active exchange reactions which
+    allow metabolites to be created.
+
+    Parameters
+    ----------
+    cobra_model : cobra.Model
+
+
+    Returns
+    -------
+    medium : dict
+        A dictionary containing pairs of reaction_id's : lower_bounds for the
+        exchange reactions present in the model
+
+    """
+    exchange_reactions = cobra_model.reactions.query("system_boundary", 'boundary')
+    
+    def is_active(reaction):
+        """ Test whether the reaction's bounds allow feasible flux to create
+        metabolite
+        """
+        if reaction.reactants:
+            if reaction.lower_bound < 0: return True
+            else: return False
+
+        elif reaction.products:
+            raise RuntimeWarning(
+                'Reaction {} has unconventional direction'.format(
+                    reaction.id))
+            if reaction.upper_bound > 0: return True
+            else: return False
+
+        else: raise RuntimeError('Empty Reaction: {}'.format(reaction.id))
+
+    medium = {r.id : r.lower_bound for r in exchange_reactions if
+              is_active(r)}
+
+    return medium
+
+
+
 def initialize_growth_medium(cobra_model, the_medium='MgM',
                              external_boundary_compartment='e',
                              external_boundary_reactions=None,

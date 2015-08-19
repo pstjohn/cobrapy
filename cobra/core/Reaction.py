@@ -380,19 +380,36 @@ class Reaction(Object):
 
         """
         new_reaction = deepcopy(self)
-        if self is other_reaction:
-            other_reaction = deepcopy(other_reaction)
-        new_reaction.id = self.id + '_' + other_reaction.id
-        new_reaction.subtract_metabolites(
-            deepcopy(other_reaction._metabolites))
+        return new_reaction + (-other_reaction)
+
+
+    def invert(self):
+        """Inverts the reaction in-place
+
+        """
+        self *= -1
+
+    def __neg__(self):
+        """Returns the reverse reaction
+        
+        """
+        new_reaction = deepcopy(self)
+        new_reaction.invert()
         return new_reaction
 
     def __imul__(self, the_coefficient):
-        """Allows the reaction coefficients to be rapidly scaled.
+        """Allows the reaction coefficients to be rapidly scaled. 
+        
+        TODO: Should this scale bounds as well?
 
         """
         self._metabolites = {k: the_coefficient * v for k, v in
                              iteritems(self._metabolites)}
+
+        # Need to flip the bounds if the reaction was multiplied by a negative
+        # coefficient
+        self.bounds = (-self.upper_bound, -self.lower_bound)
+
         return self
 
     def __mul__(self, the_coefficient):

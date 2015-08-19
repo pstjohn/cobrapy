@@ -379,3 +379,13 @@ class Model(Object):
                 # from a list.
                 reaction.objective_coefficient = objectives[reaction_id] \
                     if hasattr(objectives, "items") else 1.
+
+
+    def to_json(self, filename, pretty=False):
+        """ Save the model to a json file.
+        
+        """
+        from ..io import save_json_model
+        save_json_model(self, filename, pretty=False)
+
+

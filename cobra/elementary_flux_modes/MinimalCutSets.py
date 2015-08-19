@@ -24,7 +24,8 @@ import pandas as pd
 from cobra.elementary_flux_modes.utils import (
     run_process, make_temp_directory, opt_gen)
 
-def calculate_minimum_cut_sets(good, bad, keep=None, opts=None, verbose=True):
+def calculate_minimum_cut_sets(good, bad, keep=None, essential_reactions=None,
+                               opts=None, verbose=True):
     """ A function to compute minimal cut sets from the input elementary flux
     modes. Will find sets of reaction knockouts which remove all of the flux
     modes in bad while keeping the flux modes in good.
@@ -46,6 +47,9 @@ def calculate_minimum_cut_sets(good, bad, keep=None, opts=None, verbose=True):
         set. ($n$ in the original manuscript.) If None, defaults to keeping all
         of the passed 'good' nodes.
 
+    essential_reactions: list of cobra.Reactions or reaction.ids
+        Reactions which should be excluded from the minimal cut sets (i.e.,
+        considered essential for cell growth).
 
     opts: dict or None
         Options for the mhsCalculator script. These likely shouldn't be
@@ -93,9 +97,11 @@ def calculate_minimum_cut_sets(good, bad, keep=None, opts=None, verbose=True):
     with make_temp_directory('mhs') as temp_dir:
 
         # Create relevant temporary files and run mhsCalculator
-        write_input_files(efms, temp_dir)
+        write_input_files(efms, temp_dir, essential_reactions)
         assert os.path.isfile(temp_dir + '/modes.txt'), \
             "Error creating input files"
+
+        if essential_reactions: opts['e'] = temp_dir + '/efile'
 
         convert_efms_to_binary(temp_dir, len(efms), verbose=verbose)
         assert os.path.isfile(temp_dir + '/modes.bin'), \
@@ -114,7 +120,7 @@ def calculate_minimum_cut_sets(good, bad, keep=None, opts=None, verbose=True):
 
         
     
-def write_input_files(efms, temp_dir):
+def write_input_files(efms, temp_dir, essential_reactions):
     """ Write the elementary flux modes to the format requested by
     mhsCalculator
     
@@ -126,6 +132,17 @@ def write_input_files(efms, temp_dir):
     # write reaction names
     with open(temp_dir + '/rfile', 'w') as f:
         f.write(' '.join(('"{}"'.format(r) for r in efms.columns)))
+
+    # write essential reactions
+    if essential_reactions:
+        with open(temp_dir + '/efile', 'w') as f:
+            # First assume they are cobra.Reactions
+            try: f.write(' '.join(('"{}"'.format(r.id) for r in
+                                   essential_reactions)))
+
+            except AttributeError:
+                f.write(' '.join(('"{}"'.format(r) for r in
+                                  essential_reactions)))
     
 
 def convert_efms_to_binary(temp_dir, number_of_modes, verbose):
