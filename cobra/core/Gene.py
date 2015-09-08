@@ -1,7 +1,7 @@
 import re
 from warnings import warn
 from ast import parse as ast_parse, Name, And, Or, BitOr, BitAnd, BinOp, \
-    BoolOp, Attribute, Expression, NodeTransformer
+    BoolOp, Attribute, Expression, NodeTransformer, Tuple
 from keyword import kwlist
 
 from .Species import Species
@@ -57,6 +57,8 @@ def ast2str(expr, level=0, names=None):
         return "(" + str_exp + ")" if level else str_exp
     elif expr is None:
         return ""
+    elif isinstance(expr, Tuple):
+        return ""
     else:
         raise TypeError("unsupported operation  " + repr(expr))
 
@@ -76,6 +78,8 @@ def eval_gpr(expr, knockouts):
         else:
             raise TypeError("unsupported operation " + op.__class__.__name__)
     elif expr is None:
+        return True
+    elif isinstance(expr, Tuple):
         return True
     else:
         raise TypeError("unsupported operation  " + repr(expr))
