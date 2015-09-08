@@ -386,6 +386,6 @@ class Model(Object):
         
         """
         from ..io import save_json_model
-        save_json_model(self, filename, pretty=False)
+        save_json_model(self, filename, pretty=pretty)
 
 
