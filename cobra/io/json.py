@@ -69,9 +69,6 @@ def _fix_type(value):
     # handle legacy Formula type
     if value.__class__.__name__ == "Formula":
         return str(value)
-    # convert DictList to list of IDs
-    if value.__class__.__name__ == "DictList":
-        return [str(item.id) for item in value]
 
     return value
 
@@ -112,7 +109,6 @@ def _from_dict(obj):
     model.add_reactions(new_reactions)
     # Add pathways (if present)
     if obj.has_key('pathways'):
-        new_pathways = []
         for pathway in obj['pathways']:
             new_pathway = Pathway()
             for k, v in iteritems(pathway):
@@ -120,11 +116,15 @@ def _from_dict(obj):
                    new_pathway.add_reactions(
                         {model.reactions.get_by_id(str(rxn)): coeff
                          for rxn, coeff in iteritems(v)}) 
+                elif k == 'subpathways':
+                    # Create connections between pathways
+                    for pwy in v:
+                        sub_pathway = model.pathways.get_by_id(str(pwy))
+                        new_pathway.subpathways.append(sub_pathway)
                 else:
-                    setattr(new_reaction, k, _fix_type(v))
+                    setattr(new_pathway, k, _fix_type(v))
+            model.add_pathway(new_pathway)
 
-            new_pathways.append(new_pathway)
-        model.add_pathways(new_pathways)
 
     for k, v in iteritems(obj):
         if k in {'id', 'name', 'notes', 'compartments', 'annotation'}:
@@ -175,14 +175,15 @@ def _to_dict(model):
 
     try:
         for pathway in model.pathways:
-            new_pathway = {key: str(getattr(pathway, key))
+            new_pathway = {key: _fix_type(getattr(pathway, key))
                            for key in _REQUIRED_PATHWAY_ATTRIBUTES
-                           if key != "reactions"}
+                           if ((key != "reactions") or (key != "subpathways"))}
             _update_optional(pathway, new_pathway, _OPTIONAL_PATHWAY_ATTRIBUTES)
             rxns = {str(rxn): coeff for rxn, coeff
                     in iteritems(pathway.reactions)}
             new_pathway['reactions'] = rxns
             new_pathways.append(new_pathway)
+            new_pathway['subpathways'] = [i.id for i in pathway.subpathways]
         
         obj['pathways'] = new_pathways
 

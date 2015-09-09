@@ -460,4 +460,11 @@ class Model(Object):
         self.pathways.append(pathway)
 
         
+    def add_pathways(self, pathways):
+        """Add multiple pathways to the model.
+
+        """
+        for pathway in pathways:
+            self.add_pathway(pathway)
+
 
