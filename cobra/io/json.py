@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import json
 from warnings import warn
 
-from .. import Model, Metabolite, Reaction, Gene
+from .. import Model, Metabolite, Reaction, Gene, Pathway
 from six import iteritems, string_types
 
 # Detect numpy types to replace them.
@@ -42,6 +42,12 @@ _OPTIONAL_GENE_ATTRIBUTES = {
     "annotation": {},
 }
 
+_REQUIRED_PATHWAY_ATTRIBUTES = {"id", "name", "reactions", "subpathways"}
+_OPTIONAL_PATHWAY_ATTRIBUTES = {
+    "notes": {},
+    "annotation": {},
+}
+
 _OPTIONAL_MODEL_ATTRIBUTES = {
     "name": None,
     #  "description": None, should not actually be included
@@ -63,6 +69,10 @@ def _fix_type(value):
     # handle legacy Formula type
     if value.__class__.__name__ == "Formula":
         return str(value)
+    # convert DictList to list of IDs
+    if value.__class__.__name__ == "DictList":
+        return [str(item.id) for item in value]
+
     return value
 
 
@@ -100,6 +110,22 @@ def _from_dict(obj):
                 setattr(new_reaction, k, _fix_type(v))
         new_reactions.append(new_reaction)
     model.add_reactions(new_reactions)
+    # Add pathways (if present)
+    if obj.has_key('pathways'):
+        new_pathways = []
+        for pathway in obj['pathways']:
+            new_pathway = Pathway()
+            for k, v in iteritems(pathway):
+                if k == 'reactions':
+                   new_pathway.add_reactions(
+                        {model.reactions.get_by_id(str(rxn)): coeff
+                         for rxn, coeff in iteritems(v)}) 
+                else:
+                    setattr(new_reaction, k, _fix_type(v))
+
+            new_pathways.append(new_pathway)
+        model.add_pathways(new_pathways)
+
     for k, v in iteritems(obj):
         if k in {'id', 'name', 'notes', 'compartments', 'annotation'}:
             setattr(model, k, v)
@@ -119,6 +145,7 @@ def _to_dict(model):
     new_reactions = []
     new_metabolites = []
     new_genes = []
+    new_pathways = []
     for reaction in model.reactions:
         new_reaction = {key: _fix_type(getattr(reaction, key))
                         for key in _REQUIRED_REACTION_ATTRIBUTES
@@ -145,6 +172,21 @@ def _to_dict(model):
            'genes': new_genes,
            'id': model.id,
            }
+
+    try:
+        for pathway in model.pathways:
+            new_pathway = {key: str(getattr(pathway, key))
+                           for key in _REQUIRED_PATHWAY_ATTRIBUTES
+                           if key != "reactions"}
+            _update_optional(pathway, new_pathway, _OPTIONAL_PATHWAY_ATTRIBUTES)
+            rxns = {str(rxn): coeff for rxn, coeff
+                    in iteritems(pathway.reactions)}
+            new_pathway['reactions'] = rxns
+            new_pathways.append(new_pathway)
+        
+        obj['pathways'] = new_pathways
+
+    except AttributeError: pass
 
     _update_optional(model, obj, _OPTIONAL_MODEL_ATTRIBUTES)
     # add in the JSON version

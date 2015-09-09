@@ -23,7 +23,7 @@ __version__ = get_version()
 import libsbml
 
 from .core import Object, Metabolite, Gene, Reaction, Model, \
-    DictList, Species
+    DictList, Species, Pathway
 from . import io, flux_analysis
 
 try:

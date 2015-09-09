@@ -43,6 +43,7 @@ class Model(Object):
             self.genes = DictList()
             self.reactions = DictList()  # A list of cobra.Reactions
             self.metabolites = DictList()  # A list of cobra.Metabolites
+            self.pathways = DictList()
             self.compartments = {} # For SBML input-output
             # genes based on their ids {Gene.id: Gene}
             self.solution = Solution(None)
@@ -388,4 +389,75 @@ class Model(Object):
         from ..io import save_json_model
         save_json_model(self, filename, pretty=pretty)
 
+
+    def add_pathway(self, pathway):
+        """Add a cobra.Pathway to the model. Requires that all metabolites,
+        reactions are already present. Pathways will not change
+        any model behavior, but are merely a convienience feature for
+        understanding and grouping reactions 
+
+        pathway: a cobra.Pathway object
+
+        """
+
+        # Assert that pathway is not already in the model, and that all
+        # reactions and metabolites in the pathway are already in the model.
+        if self.pathways.has_id(pathway.id):
+            raise Exception("Pathway already in model: " +
+                            pathway.id)
+
+        reactions_not_in_model = [
+            i.id for i in pathway.reactions if not self.reactions.has_id(
+                i.id)]
+
+        if len(reactions_not_in_model) > 0:
+            raise Exception("Reactions not in the model: " +
+                            ", ".join(reactions_not_in_model))
+
+
+        metabolites_not_in_model = [
+            i.id for i in pathway.metabolites if not self.metabolites.has_id(
+                i.id)]
+
+        if len(metabolites_not_in_model) > 0:
+            raise Exception("Metabolites not in the model: " +
+                            ", ".join(metabolites_not_in_model))
+
+        pathway._model = self
+
+        # Superpathways will need to be added later, assuming that connections
+        # between pathways have been broken.
+        pathway.superpathways = DictList()
+
+        # Associate subpathways with those already in the model
+        model_subpathways = []
+        for subpathway in pathway.subpathways:
+            try:
+                model_subpathway = self.pathways.get_by_id(subpathway.id)
+            except KeyError:
+                self.add_pathway(subpathway)
+                model_subpathway = self.pathways.get_by_id(subpathway.id)
+
+            model_subpathway.superpathways.append(pathway)
+
+            model_subpathways += [model_subpathway]
+
+        pathway.subpathways = model_subpathways
+
+
+        # Associate reactions with those already in the model
+        model_reactions = {self.reactions.get_by_id(reaction.id) : stoich for
+                           reaction, stoich in pathway.reactions.iteritems()}
+        pathway.reactions = model_reactions
+
+        # Associate metabolites with those already in the model
+        for metabolite in list(pathway._metabolites.keys()):
+            stoichiometry = pathway._metabolites.pop(metabolite)
+            model_metabolite = self.metabolites.get_by_id(
+                metabolite.id)
+            pathway._metabolites[model_metabolite] = stoichiometry
+
+        self.pathways.append(pathway)
+
+        
 

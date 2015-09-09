@@ -6,6 +6,7 @@ from .Reaction import Reaction
 from .Solution import Solution
 from .Model import Model
 from .Species import Species
+from .Pathway import Pathway
 
 try:
     import scipy

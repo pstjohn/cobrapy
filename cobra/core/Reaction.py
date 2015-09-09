@@ -190,11 +190,11 @@ class Reaction(Object):
     @property
     def boundary(self):
         # single metabolite implies it must be a boundary
-        if len(self._metabolites) == 1:
+        if len(self.metabolites) == 1:
             return "system_boundary"
         # if there is more than one metabolite, if it ONLY produces or ONLY
         # consumes, it is also a boundary.
-        all_stoichiometry = self._metabolites.values()
+        all_stoichiometry = self.metabolites.values()
         if not min(all_stoichiometry) < 0 < max(all_stoichiometry):
             return "system_boundary"
         return None
@@ -232,7 +232,7 @@ class Reaction(Object):
         # preserve the original attributes (but as copies)
         model = self._model
         new_metabolites = {copy(met): value
-                           for met, value in iteritems(self._metabolites)}
+                           for met, value in iteritems(self.metabolites)}
         new_genes = {copy(i) for i in self._genes}
         # Begin removing from the model
         self._model = None
@@ -540,7 +540,7 @@ class Reaction(Object):
             return "" if number == 1 else str(number).rstrip(".") + " "
         reactant_bits = []
         product_bits = []
-        for the_metabolite, coefficient in iteritems(self._metabolites):
+        for the_metabolite, coefficient in iteritems(self.metabolites):
             # Here the metabolite string is set globally by
             # Metabolite._str_method
             name = str(the_metabolite)
