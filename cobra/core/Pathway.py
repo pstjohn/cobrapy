@@ -36,9 +36,6 @@ class Pathway(Reaction):
                 if metabolites[metabolite] == 0:
                     metabolites.pop(metabolite)
                         
-
-        
-
         return metabolites
         
 
