@@ -680,3 +680,13 @@ class Reaction(Object):
                         print("unknown metabolite '%s' created" % met_id)
                     met = Metabolite(met_id)
                 self.add_metabolites({met: num})
+
+    @property
+    def pathways(self):
+        """Return the pathways in which this reaction participates.
+
+        """
+        return set(
+            self.model.pathways.query(
+                lambda x: self in x.reactions.keys()))
+
