@@ -107,7 +107,7 @@ class MOMAModel(Model):
             objective = cvx.Minimize(cvx.sum_squares(self._v - self.x_wildtype))
 
         elif method == 'linear':
-            objective = cvx.minimize(cvx.sum_entries(
+            objective = cvx.Minimize(cvx.sum_entries(
                 cvx.abs(self._v - self.x_wildtype)))
 
         else: raise RuntimeError('Method {} not supported'.format(method))
@@ -127,13 +127,17 @@ class MOMAModel(Model):
         self._upper_bound.value[reaction_index] = reaction.upper_bound
 
     
-    def optimize(self, MOMA=True, method=None, **kwargs):
+    def optimize(self, method=None, solver=None, **kwargs):
         """ Run the minimization of metabolic adjustment. If `method`, update
         the corresponding objective funciton.
 
         method: None, 'quadratic' or 'linear'
             The method used to compare flux values before and after knockout.
             If None, use pre-specified objective
+
+        solver: string
+            The solver to pass to cvxpy's solve command. Useful if CVXPY
+            complains the default solver is not capable of solving the problem.
 
         """
 
@@ -148,7 +152,7 @@ class MOMAModel(Model):
                     cvx.sum_entries(cvx.abs(self._v - self.x_wildtype)))
 
         # Solve the MOMA problem
-        optimum_dist = self._cvx_prob.solve()
+        optimum_dist = self._cvx_prob.solve(solver)
 
         # Parse results for a cobrapy Solution object
         x_opt = np.array(self._v.value).flatten()
