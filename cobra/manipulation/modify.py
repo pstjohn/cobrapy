@@ -3,6 +3,8 @@ from warnings import warn
 from itertools import chain
 from ast import NodeTransformer
 
+from contextlib import contextmanager
+
 from six import iteritems
 
 from .. import Reaction
@@ -283,3 +285,52 @@ def revert_to_reversible(cobra_model, update_solution=True, allow_missing=False)
     if update_solution:
         cobra_model.solution.x_dict = x_dict
         cobra_model.solution.x = [x_dict[r.id] for r in cobra_model.reactions]
+
+
+
+
+
+@contextmanager
+def knocked_out(model, ko_list):
+    """Convenience function to temporarily knockout reactions.
+
+    model: a cobra.Model model
+        The original, wild-type model
+
+    ko_list: a list of cobra.Reactions
+        Reactions to knock out
+
+    This function will temporary knockout reactions, and reset them to their
+    original bounds using context management. For example:
+
+    >>> with knocked_out(wt_model, [rxn1, rxn2]) as ko_model:
+    >>>     my_knockout_test(ko_model)
+    >>>
+    >>> my_wt_test(wt_model)
+
+    will knockout reactions rxn1 and rxn2 only within the scope of the with
+    statement.
+
+    """
+    # Correct non-list input
+    if type(ko_list) is not list: ko_list = [ko_list]
+
+    # Store original bounds for later use
+    try:
+        wt_bounds = {rxn : model.reactions.get_by_id(rxn.id).bounds 
+                     for rxn in ko_list}
+    except AttributeError:
+        wt_bounds = {rxn : model.reactions.get_by_id(rxn).bounds 
+                     for rxn in ko_list}
+
+
+    # Knockout reactions (set bounds to zero)
+    for rxn in ko_list: model.reactions.get_by_id(rxn).knock_out()
+
+    # Yield statement for context manager, with-code gets executed here
+    yield model
+
+    # Reset reaction bounds to their original state
+    for rxn in ko_list: model.reactions.get_by_id(rxn).bounds = wt_bounds[rxn]
+
+
