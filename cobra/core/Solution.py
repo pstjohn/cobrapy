@@ -30,12 +30,29 @@ class Solution(object):
         self.y = y
         self.y_dict = y_dict
 
-    def save(self, filename=None):
+    def save(self, filename=None, pretty=True):
+        """Save the flux data in x_dict to a JSON file.
+
+        filename: str or None
+            If None, use the id of the attached model to generate a filename
+
+        pretty: bool
+            Whether or not to pretty-print the json file.
+
+        """
+
         if filename == None:
-            # Will raise an attribute error if there's no attached solution
+            # Will raise an attribute error if there's no attached model
             filename = self.model.id + '_solution.json'
         with open(filename, 'wb') as f:
-            json.dump(self.x_dict, f)
+            if pretty:
+                indent = 4
+                sort_keys = True
+            else:
+                indent = None
+                sort_keys = False
+
+            json.dump(self.x_dict, f, indent=indent, sort_keys=sort_keys)
         return
 
     def __repr__(self):

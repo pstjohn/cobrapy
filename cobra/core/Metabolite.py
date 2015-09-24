@@ -141,9 +141,22 @@ class Metabolite(Species):
             raise Exception(method + " is not 'subtractive' or 'destructive'")
 
 
-    def summary(self, ignore_inactive=0.01):
+    def summary(self, ignore_inactive=0.01, element=None, ret_df=False):
         """ Print a summary of the reactions which produce and consume this
-        metabolite """
+        metabolite 
+        
+        ignore_inactive: float
+            A [0, 1] value which specifies the fraction beneath which fluxes
+            are ignored
+
+        element: None or str
+            If not None, multiplies fluxes the by the composition of the given
+            element.
+            
+        ret_df: bool
+            If true, return the flux_summary dataframe
+
+        """
 
         def rxn_generator():
             for rxn in self.reactions:
@@ -154,20 +167,31 @@ class Metabolite(Species):
                 # Correct the direction of the reaction. A positive flux
                 # produces the metabolite
                 return_dict['flux'] = rxn.x * rxn.metabolites[self]
+
+                # Correct to moles of element if one was provided
+                if element: return_dict['flux'] *= self.elements[element]
                 
 
-                # Correct the reaction direction for reactions running in
-                # reverse
-                if rxn.x >= 0:
-                    return_dict['reaction'] = rxn.reaction
+                return_dict['reaction'] = rxn.reaction
+                # # Correct the reaction direction for reactions running in
+                # # reverse
+                # if rxn.x >= 0:
+                #     return_dict['reaction'] = rxn.reaction
 
-                elif rxn.x < 0:
-                    # Invert reaction direction
-                    return_dict['reaction'] = (-rxn).reaction
+                # elif rxn.x < 0:
+                #     # Invert reaction direction
+                #     return_dict['reaction'] = (-rxn).reaction
 
                 yield return_dict
 
         flux_summary = pd.DataFrame(rxn_generator())
+
+        assert flux_summary.flux.sum() < 1E-6, "Error in flux balance"
+
+        if ret_df:
+            # Sort and return the flux dataframe
+            flux_summary.sort('flux', ascending=False, inplace=True)
+            return flux_summary
 
         producing = flux_summary[flux_summary.flux > 0].copy()
         consuming = flux_summary[flux_summary.flux < 0].copy()

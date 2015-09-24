@@ -14,9 +14,19 @@ from .minimum_absolute_flux import optimize_maf
 if numpy:
     from .double_deletion import double_reaction_deletion, double_gene_deletion
     from .phenotype_phase_plane import calculate_phenotype_phase_plane
-    from .moma import MOMAModel
 else:
     from warnings import warn
     warn("double deletions and phase planes requires numpy")
     del warn
 del numpy
+
+
+try:
+    import cvxpy
+except:
+    cxvpy = None
+
+if cvxpy:
+    from .moma import MOMAModel
+    from .constraint_duals import calculate_constraint_duals
+del cvxpy

@@ -14,6 +14,7 @@ dependencies.
 # from the model without destroying the moma evalutions.
 """
 
+from warnings import warn
 import itertools
 import numpy as np
 import cvxpy as cvx
@@ -113,6 +114,7 @@ class MOMAModel(Model):
         else: raise RuntimeError('Method {} not supported'.format(method))
 
         self._cvx_prob = cvx.Problem(objective, constraints)
+        self._method = method
 
 
         
@@ -143,6 +145,7 @@ class MOMAModel(Model):
 
         # Only update the objective function if desired
         if method:
+            self._method = method
             if method == 'quadratic':
                 self._cvx_prob.objective = cvx.Minimize(
                     cvx.sum_squares(self._v - self.x_wildtype))
@@ -152,7 +155,17 @@ class MOMAModel(Model):
                     cvx.sum_entries(cvx.abs(self._v - self.x_wildtype)))
 
         # Solve the MOMA problem
-        optimum_dist = self._cvx_prob.solve(solver)
+        try: optimum_dist = self._cvx_prob.solve(solver)
+        except cvx.SolverError:
+            if self._method == 'quadratic':
+                warn("Quadratic MOMA failed, reverting to linear")
+                self._method = 'linear'
+                self._cvx_prob.objective = cvx.Minimize(
+                    cvx.sum_entries(cvx.abs(self._v - self.x_wildtype)))
+                optimum_dist = self._cvx_prob.solve(solver)
+                
+
+
 
         # Parse results for a cobrapy Solution object
         x_opt = np.array(self._v.value).flatten()
