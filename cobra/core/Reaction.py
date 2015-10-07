@@ -415,11 +415,10 @@ class Reaction(Object):
     def __mul__(self, the_coefficient):
         """Allows a reaction to be multiplied by a coefficient.
 
-        TODO: this should return a new reaction.
-
         """
-        self *= the_coefficient
-        return self
+        new_rxn = self.copy()
+        new_rxn *= the_coefficient
+        return new_rxn
 
     @property
     def reactants(self):
