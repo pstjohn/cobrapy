@@ -539,7 +539,8 @@ class Reaction(Object):
             return "" if number == 1 else str(number).rstrip(".") + " "
         reactant_bits = []
         product_bits = []
-        for the_metabolite, coefficient in iteritems(self.metabolites):
+        for the_metabolite in sorted(self.metabolites, key=lambda m: m.id):
+            coefficient = self.metabolites[the_metabolite]
             # Here the metabolite string is set globally by
             # Metabolite._str_method
             name = str(the_metabolite)
