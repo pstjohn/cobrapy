@@ -2,6 +2,7 @@ from warnings import warn
 
 from six import iteritems, string_types
 from ..core.Metabolite import Metabolite
+from ..core.Reaction import Reaction
 from ..solvers import solver_dict, get_solver_name
 
 
@@ -96,3 +97,55 @@ def find_blocked_reactions(cobra_model, reaction_list=None,
         solver=solver, **solver_args)
     return [k for k, v in iteritems(flux_span_dict)
             if max(map(abs, v.values())) < zero_cutoff]
+
+
+def find_metabolite_capability(cobra_model, metabolite_list=None):
+    """Find the production and consumption capabilities of the given model
+
+    Parameters:
+
+    cobra_model: a cobra.Model object
+    
+    metabolite_list: iterable or None
+        The metabolites to consider. If None, defaults to all metabolites in
+        the model
+
+    Returns a dictionary of 
+    {metabolite : 
+        {'produce' : float, 
+         'consume' : float}} 
+    
+    Indicating the capability of the model to produce and consume the given metabolite.
+
+    """
+
+    if metabolite_list is None:
+        metabolite_list = cobra_model.metabolites
+
+
+    original_objective = dict(cobra_model.objective)
+
+    out_dict = {}
+
+    for metabolite in metabolite_list:
+
+        out_dict[metabolite.id] = {}
+
+        sink_reaction = Reaction(metabolite.id + '_sink')
+        sink_reaction.add_metabolites({
+            metabolite : -1
+        })
+
+        cobra_model.add_reaction(sink_reaction)
+
+        sink_reaction.bounds = (0, 1000)
+        cobra_model.objective = {sink_reaction : 1}
+        out_dict[metabolite.id]['produce'] = cobra_model.optimize().f
+
+        sink_reaction.bounds = (-1000, 0)
+        cobra_model.objective = {sink_reaction : -1}
+        out_dict[metabolite.id]['consume'] = cobra_model.optimize().f
+            
+        sink_reaction.remove_from_model()
+    
+    return out_dict

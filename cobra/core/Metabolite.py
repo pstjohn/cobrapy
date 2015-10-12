@@ -190,7 +190,7 @@ class Metabolite(Species):
 
         if ret_df:
             # Sort and return the flux dataframe
-            flux_summary.sort('flux', ascending=False, inplace=True)
+            flux_summary.sort_values('flux', ascending=False, inplace=True)
             return flux_summary
 
         producing = flux_summary[flux_summary.flux > 0].copy()
@@ -203,8 +203,8 @@ class Metabolite(Species):
             df['id'] = df['id'].map(lambda x: x[:8])
             # df['%'] = df['%'].map('{:.1f}%'.format)
 
-        producing.sort('percent', ascending=False, inplace=True)
-        consuming.sort('percent', ascending=False, inplace=True)
+        producing.sort_values('percent', ascending=False, inplace=True)
+        consuming.sort_values('percent', ascending=False, inplace=True)
 
         head = "PRODUCING REACTIONS -- " + self.name[:55]
         print head
