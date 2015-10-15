@@ -1,2 +1,2 @@
-from .ElementaryFluxModes import calculate_elementary_modes
+from .ElementaryFluxModes import calculate_elementary_modes, boundary_efms
 from .MinimalCutSets import calculate_minimum_cut_sets
