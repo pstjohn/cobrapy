@@ -1,5 +1,7 @@
 from warnings import warn
 from copy import deepcopy, copy
+import pandas as pd
+import itertools
 
 from six import iteritems, string_types
 
@@ -381,6 +383,38 @@ class Model(Object):
                 reaction.objective_coefficient = objectives[reaction_id] \
                     if hasattr(objectives, "items") else 1.
 
+
+    def summary(self, tol=1E-8, round=2):
+        """Print a summary of the input and output fluxes of the model.
+        
+        tol: float
+            tolerance for determining if a flux is zero (not printed)
+
+        round: int
+            number of digits after the decimal place to print
+
+
+        perhaps I should remove the pandas requirement? ive used it pretty much
+        everywhere else though, so once more shouldnt hurt.
+
+        """
+        out_rxns = self.reactions.query(
+            lambda rxn: rxn.x > tol).query('system_boundary', 'boundary')
+        in_rxns = self.reactions.query(
+            lambda rxn: rxn.x < -tol).query('system_boundary', 'boundary')
+
+        out_fluxes = pd.Series({r.reactants[0] : r.x for r in out_rxns})
+        in_fluxes = pd.Series({r.reactants[0] : r.x for r in in_rxns})
+
+        out_fluxes = pd.np.round(out_fluxes.sort_values(ascending=False), round)
+        in_fluxes  = pd.np.round(in_fluxes.sort_values(), round)
+
+        print '\n'.join(["{a:<30}{b:<30}".format(a=(a if a else ''), b=(b if b else ''))
+                          for a, b in itertools.izip_longest(
+                                  ['IN FLUXES'] + in_fluxes.to_string().split('\n'), 
+                                  ['OUT FLUXES'] + out_fluxes.to_string().split('\n'))])
+
+        
 
     def to_json(self, filename, pretty=False):
         """ Save the model to a json file.
