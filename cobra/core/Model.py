@@ -408,17 +408,13 @@ class Model(Object):
 
         out_fluxes = pd.np.round(out_fluxes.sort_values(ascending=False), round)
         in_fluxes  = pd.np.round(in_fluxes.sort_values(), round)
-        
-        obj_fluxes = pd.Series({'{:<15}'.format(r.id): '{:.3f}'.format(r.x) 
-                                for r in self.objective.iterkeys()})
 
-        print '\n'.join(["{a:<30}{b:<30}{c:<20}".format(
-            a=(a if a else ''), b=(b if b else ''), c=(c if c else ''))
-                          for a, b, c in itertools.izip_longest(
+        print '\n'.join(["{a:<30}{b:<30}".format(a=(a if a else ''), b=(b if b else ''))
+                          for a, b in itertools.izip_longest(
                                   ['IN FLUXES'] + in_fluxes.to_string().split('\n'), 
-                                  ['OUT FLUXES'] + out_fluxes.to_string().split('\n'),
-                                  ['OBJECTIVES'] + obj_fluxes.to_string().split('\n'))]) 
+                                  ['OUT FLUXES'] + out_fluxes.to_string().split('\n'))])
 
+        
 
     def to_json(self, filename, pretty=False):
         """ Save the model to a json file.
