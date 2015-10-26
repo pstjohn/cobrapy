@@ -150,13 +150,13 @@ class Reaction(Object):
             return self._model.solution.x_dict[self.id]
         except Exception as e:
             if self._model is None:
-                raise Exception("not part of a model")
+                raise AttributeError("not part of a model")
             if not hasattr(self._model, "solution") or \
                     self._model.solution is None or \
                     self._model.solution.status == "NA":
-                raise Exception("model has not been solved")
+                raise AttributeError("model has not been solved")
             if self._model.solution.status != "optimal":
-                raise Exception("model solution was not optimal")
+                raise AttributeError("model solution was not optimal")
             raise e  # Not sure what the exact problem was
     
     @property
@@ -228,7 +228,7 @@ class Reaction(Object):
             if model != self._model:
                 raise Exception("Can not remove from a different model")
         if self._model is None:
-            raise Exception("Reaction %s not in a model" % self.id)
+            raise AttributeError("Reaction %s not in a model" % self.id)
         # preserve the original attributes (but as copies)
         model = self._model
         new_metabolites = {copy(met): value
