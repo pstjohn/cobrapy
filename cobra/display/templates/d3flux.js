@@ -18,15 +18,18 @@ require(["d3", "math", "FileSaver", "d3tip"], function (d3, math, FileSaver, d3t
 
   var force = d3.layout.force()
     .linkDistance(30)
-    .linkStrength(2)
     .charge(-100)
     .chargeDistance(400)
     .gravity(.015)
     .size([width, height]);
 
-  var svg = d3.select("#{{ figure_id }}").append("svg")
-    .attr("width", width)
-    .attr("height", height);
+  if ({{ no_background }}) {
+    var svg = d3.select("#{{ figure_id }}").append("svg")
+      .attr("width", width)
+      .attr("height", height);
+  } else {
+    var svg = d3.select("#{{ figure_id }}").select("svg");
+  }
 
   d3.select("#reactionbutton").on("click", function() {
     var $this = $(this);
@@ -119,6 +122,9 @@ require(["d3", "math", "FileSaver", "d3tip"], function (d3, math, FileSaver, d3t
         if (metabolite.notes.map_info.hidden) {
           return;
         } else {
+          if ({{ hide_unused }} && (Math.abs(metabolite.notes.map_info.flux) < 1E-6)) {
+            return;
+          }
           mfluxes.push(metabolite.notes.map_info.flux);
         }
       }
@@ -156,6 +162,9 @@ require(["d3", "math", "FileSaver", "d3tip"], function (d3, math, FileSaver, d3t
         if (reaction.notes.map_info.hidden) {
           return;
         } else if ('flux' in reaction.notes.map_info) {
+          if ({{ hide_unused }} && (Math.abs(reaction.notes.map_info.flux) < 1E-6)) {
+            return;
+          }
           fluxes.push(Math.abs(reaction.notes.map_info.flux));
           if (reaction.notes.map_info.flux < 0) {
             // If the reaction is flowing in reverse, switch products and
@@ -257,6 +266,22 @@ require(["d3", "math", "FileSaver", "d3tip"], function (d3, math, FileSaver, d3t
       }
     }
   });
+
+  // Modify link strength based on flux:
+  // link_strength_scale = d3.scale.pow().exponent(1/2)
+  link_strength_scale = d3.scale.linear()
+    .domain([d3.min(fluxes), d3.max(fluxes)])
+    .range([.2, 2]);
+
+  force
+    .linkStrength(function (link) {
+      try {
+        return link.rxn.notes.map_info.flux;
+      }
+      catch(err) {
+        return 1;
+      }
+    });
 
   force
     .nodes(nodes)
@@ -381,21 +406,28 @@ require(["d3", "math", "FileSaver", "d3tip"], function (d3, math, FileSaver, d3t
     node.call(updateNode);
   });
 
-  flux_scale = d3.scale.pow().exponent(1/3)
+  // flux_scale = d3.scale.pow().exponent(1/2)
+  flux_scale = d3.scale.linear()
     .domain([d3.min(fluxes), d3.max(fluxes)])
-    .range([1.5, 6]);
+    .range([1.5, 8]);
 
-  metabolite_scale = d3.scale.pow().exponent(1/3)
+  // metabolite_scale = d3.scale.pow().exponent(1/2)
+  metabolite_scale = d3.scale.linear()
     .domain([d3.min(mfluxes), d3.max(mfluxes)])
     .range([4, 8]);
 
   arrowhead_scale = d3.scale.linear()
     .domain([1.5, 6])
-    .range([5, 10]);
+    .range([7, 14]);
 
   function get_flux_width (rxn) {
     try {
-      return flux_scale(Math.abs(rxn.notes.map_info.flux));
+      var flux = flux_scale(Math.abs(rxn.notes.map_info.flux));
+      if (!isNaN(flux)) {
+        return flux;
+      } else{
+        return 1.5;
+      }
     }
     catch(err) {
       return 1.5; // Default linewidth
@@ -424,9 +456,14 @@ require(["d3", "math", "FileSaver", "d3tip"], function (d3, math, FileSaver, d3t
 
   function get_node_radius (d) {
     try {
-      return metabolite_scale(d.notes.map_info.flux);
+      var nodewidth = metabolite_scale(d.notes.map_info.flux);
+      if (!isNaN(nodewidth)) {
+        return nodewidth;
+      } else {
+        return 5;
+      }
     }
-    catch(err){}
+    catch(err){ return 5; }
   }
 
   svg.selectAll(".link")

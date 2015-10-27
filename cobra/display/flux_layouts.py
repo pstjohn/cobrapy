@@ -17,9 +17,11 @@ env = Environment(loader=FileSystemLoader(
 
 def flux_map(cobra_model, included_metabolites=None,
              excluded_metabolites=None, excluded_reactions=None,
-             excluded_compartments=None):
+             excluded_compartments=None, **kwargs):
     """Create a flux map representation of the cobra.Model, including or
-    excluding the given metabolites, reactions, and/or compartments 
+    excluding the given metabolites, reactions, and/or compartments.
+
+    Additional kwargs are passed directly to `render_model`
     
     """
     # build cofactor metabolites from strings
@@ -67,16 +69,7 @@ def flux_map(cobra_model, included_metabolites=None,
     for metabolite in excluded_metabolites:
         metabolite.notes['map_info'] = {'hidden' : True}
 
-    return render_model(cobra_model)
-
-
-
-
-
-
-
-    
-
+    return render_model(cobra_model, **kwargs)
 
 
 def create_model_json(cobra_model):
@@ -112,15 +105,35 @@ def create_model_json(cobra_model):
 
 
 
-def render_model(cobra_model):
+def render_model(cobra_model, background_template=None, custom_css=None,
+                 figure_id=None, hide_unused=None):
     """ Render a cobra.Model object in the current window """
 
     # Increment figure counter
-    render_model._fignum += 1
 
     # Get figure name and JSON string for the cobra model
-    figure_id = 'd3flux{:0>3d}'.format(render_model._fignum)
+    if not figure_id:
+        render_model._fignum += 1
+        figure_id = 'd3flux{:0>3d}'.format(render_model._fignum)
+
     modeljson = create_model_json(cobra_model)
+
+    if not hide_unused:
+        hide_unused = "false"
+    else: hide_unused = "true"
+
+    # Handle custom CSS
+    if not custom_css: 
+        custom_css = ''
+
+    # Handle background template
+    if not background_template:
+        background_svg = ''
+        no_background = "true"
+    else:
+        from IPython.display import SVG
+        background_svg = SVG(background_template).data
+        no_background = "false"
 
     # Initialize the jinja templates
     template_css = env.get_template('network_style.css')
@@ -129,21 +142,18 @@ def render_model(cobra_model):
 
     # Render the jinja templates with the given variables
     css = template_css.render()
-    html = template_html.render(figure_id=figure_id)
-    js = template_js.render(figure_id=figure_id, modeljson=modeljson)
-    
-    # Define wrappers to compile to single HTML string
-    css_head = '<style type="text/css">\n'
-    css_foot = '\n</style>'
-    js_head = '<script type="text/Javascript">\n'
-    js_foot = '\n</script>'
 
-    # wrap css and js elements
-    css = css_head + css + css_foot
-    js = js_head + js + js_foot
+    js = template_js.render(figure_id=figure_id, modeljson=modeljson,
+                            no_background=no_background,
+                            hide_unused=hide_unused)
+
+    html = template_html.render(figure_id=figure_id,
+                                background_svg=background_svg,
+                                default_style=css, custom_css=custom_css,
+                                javascript_source=js)
 
     # compile and return HTML
-    return HTML(css + html + js)
+    return HTML(html)
 
 # Initialize figure counter
 render_model._fignum = 0

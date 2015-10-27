@@ -1,6 +1,15 @@
-<div id="{{ figure_id }}"></div>
+<div id="{{ figure_id }}">
+  <style scoped>
+  {{ default_style }}
+  {{ custom_css }}
+  </style>
+  {{ background_svg }}
+</div>
 <div id="options">
   <button type="button" id="download" class="btn btn-primary">Save JSON</button>
   <button type="button" id="reactionbutton" class="btn btn-success ">Show Reaction Nodes</button>
   <button type="button" id="svgdownload" class="btn btn-info ">Download SVG</button>
 </div>
+<script type="text/Javascript">
+{{ javascript_source }}
+</script>
