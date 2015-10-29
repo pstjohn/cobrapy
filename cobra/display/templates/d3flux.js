@@ -293,16 +293,16 @@ require(["d3", "math", "FileSaver", "d3tip"], function (d3, math, FileSaver, d3t
     .enter()
     .append("marker")
     .attr("id", function (d) { return d.id; })
-    .attr("viewBox", "0 -5 10 10")
+    .attr("viewBox", "0 0 10 10")
     .attr("refX", 12)
-    .attr("refY", 0)
+    .attr("refY", 5)
     .attr("markerUnits", "userSpaceOnUse")
     .attr("markerWidth", "8pt")
     .attr("markerHeight", "8pt")
     .attr("orient", "auto")
     .attr("class", "endmarker")
     .append("path")
-    .attr("d", "M0,-5L10,0L0,5");
+    .attr("d", "M 0 0 L 10 5 L 0 10 z");
 
   var link = svg.append('g').selectAll(".link")
     .data(bilinks)

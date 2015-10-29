@@ -220,7 +220,11 @@ def check_mfa_results(model, cutsets, targets):
             try: 
                 s = ko_model.optimize()
                 assert np.isfinite(s.f)
-            except Exception as ex: raise(ex)
+            except Exception:
+                yield (cutset, {key : np.NaN for key, val in
+                                target_dict.iteritems()})
+                continue
+
             yield (cutset, {key : val(ko_model) for key, val in
                             target_dict.iteritems()})
 
