@@ -31,7 +31,7 @@ require(["d3", "math", "FileSaver", "d3tip"], function (d3, math, FileSaver, d3t
     var svg = d3.select("#{{ figure_id }}").select("svg");
   }
 
-  d3.select("#reactionbutton").on("click", function() {
+  d3.select("#{{ figure_id }}_options .reactionbutton").on("click", function() {
     var $this = $(this);
     $this.toggleClass('btn-danger');
     d3.selectAll(".node.rxn")
@@ -45,7 +45,12 @@ require(["d3", "math", "FileSaver", "d3tip"], function (d3, math, FileSaver, d3t
     }
   });
 
-  d3.select("#svgdownload").on("click", function() { 
+  d3.select("#{{ figure_id }}_options .svgbutton").on("click", function() { 
+    // var svg = d3.select("#{{ figure_id }}").select("svg");
+    // var image = Pancake(svg[0][0]);
+    // image.download("{{ figure_id }}.png");
+
+
     var e = document.createElement('script'); 
     if (window.location.protocol === 'https:') { 
       e.setAttribute('src', 'https://rawgit.com/NYTimes/svg-crowbar/gh-pages/svg-crowbar.js'); 
@@ -480,7 +485,7 @@ require(["d3", "math", "FileSaver", "d3tip"], function (d3, math, FileSaver, d3t
   svg.selectAll(".metabolite")
     .attr("r", get_node_radius);
 
-  d3.select("#download")
+  d3.select("#{{ figure_id }}_options .download")
     .on("click", function () {
 
       // Add position data to model nodes
