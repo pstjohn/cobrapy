@@ -12,7 +12,7 @@ class Object(object):
         self.id = id
         self.name = name
 
-        self.notes = {}
+        self.notes = {'map_info' : {}}
         self.annotation = {}
 
     def __getstate__(self):

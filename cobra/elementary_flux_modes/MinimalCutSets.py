@@ -196,43 +196,6 @@ def read_bitvector_file(file_name, rnames):
 
             
 
-def check_mfa_results(model, cutsets, targets):
-    """Run metabolic flux analysis for each of the calculated cutsets,
-    returning optimal growth rates and fluxes through target reactions.
-
-    model: a cobra.Model object
-    cutsets: a pandas.DataFrame containing the results of `calculate_minimum_cut_sets`
-    targets: a list of reaction strings indicating the desired results of MCS
-
-    """
-    sorted_cutsets = cutsets.iloc[cutsets.sum(1).argsort()]
-    rxn_kos = sorted_cutsets.T.apply(lambda x: list(x.loc[x].index))
-
-    target_dict = {key : lambda model, key=key: model.reactions.get_by_id(key).x 
-                   for key in targets}
-    target_dict.update({'growth' : lambda model: model.objective.keys()[0].x})
-
-    def find_growth_rates():
-        for cutset, knockouts in rxn_kos.iteritems():
-            ko_model = model.copy()
-            for r in knockouts:
-                ko_model.reactions.get_by_id(r).knock_out()
-            try: 
-                s = ko_model.optimize()
-                assert np.isfinite(s.f)
-            except Exception:
-                yield (cutset, {key : np.NaN for key, val in
-                                target_dict.iteritems()})
-                continue
-
-            yield (cutset, {key : val(ko_model) for key, val in
-                            target_dict.iteritems()})
-
-    out = pd.DataFrame(rxn_kos, columns=['Knockouts']).join(
-        pd.DataFrame(dict(find_growth_rates())).T)
-
-    return out[out['growth'] > 1E-6]
-
 
 
 

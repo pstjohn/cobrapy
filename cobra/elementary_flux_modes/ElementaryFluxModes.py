@@ -330,48 +330,6 @@ def calculate_elementary_modes(cobra_model, opts=None, verbose=True):
         # I prefer to have model reactions as columns.
         return out_arr.T
 
-def boundary_efms(cobra_model, efms, tol=1E-4):
-    """Shortcut method to condense elementary flux modes to a unique set of
-    input-output modes.
-
-    cobra_model: a cobra.Model object
-
-    efms: a pandas.DataFrame 
-        represents the elementary flux modes of the system (output of
-        calculate_elementary_modes)
-
-    tol: float
-        Tolerance for combining similar elementary flux modes
-
-    """
-
-    def scale_df(df):
-        df_ss = np.sqrt((df**2).sum(1))
-        to_drop = df_ss[df_ss == 0].index
-        df_t = df.drop(to_drop)
-        df_ss = df_ss.drop(to_drop)
-        return df_t.divide(df_ss.values, axis='rows'), to_drop
-
-    def remove_duplicates(df, tol=1E-4):
-        df_round = df.fillna(0)
-        df_round, to_drop = scale_df(df_round)
-        df = df.drop(to_drop)
-        df_round = np.round(df_round, decimals=int(-np.log10(1E-4)))
-        return df.ix[~(df_round*(1/tol)).astype('int64').duplicated()]
-    
-    # Get the boundary reactions from the cobra.Model
-    boundary_rxns = [r.id for r in cobra_model.reactions.query(
-        'system_boundary', 'boundary') if r.id in efms.columns]
-
-    ioefms = efms[boundary_rxns]
-
-    return remove_duplicates(ioefms)
-
-
-
-
-
-
 
 
 if __name__ == "__main__":

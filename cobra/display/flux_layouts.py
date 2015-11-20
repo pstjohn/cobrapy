@@ -80,6 +80,20 @@ def create_model_json(cobra_model):
     # Add flux info
     for reaction in cobra_model.reactions:
         try:
+            # If I'm styling reaction knockouts, don't set the flux for a
+            # knocked out reaction
+            try: 
+                if reaction.notes['map_info']['group'] == 'ko': 
+                    # Delete the flux key, if it exists
+                    try: del reaction.notes['map_info']['flux']
+                    except Exception: pass
+
+                    # Onto the next reaction
+                    continue
+
+            # Onto the next reaction
+            except KeyError: pass
+
             reaction.notes['map_info']['flux'] = reaction.x
 
         except KeyError:
