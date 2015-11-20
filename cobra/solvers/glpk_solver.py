@@ -2,8 +2,13 @@
 #This script provides wrappers for pyglpk 0.3
 from warnings import warn
 from copy import deepcopy
-from itertools import izip
+try:
+    # Import izip for python versions < 3.x
+    from itertools import izip as zip
+except ImportError:
+    pass
 
+from six import iteritems
 from glpk import LPX
 
 from ..core.Solution import Solution
@@ -79,7 +84,7 @@ def create_problem(cobra_model, **kwargs):
     lp.rows.add(len(cobra_model.metabolites))
     lp.cols.add(len(cobra_model.reactions))
 
-    for r, the_metabolite in izip(lp.rows, cobra_model.metabolites):
+    for r, the_metabolite in zip(lp.rows, cobra_model.metabolites):
         r.name = the_metabolite.id
         b = float(the_metabolite._bound)
         c = the_metabolite._constraint_sense
@@ -94,12 +99,12 @@ def create_problem(cobra_model, **kwargs):
 
     objective_coefficients = []
     linear_constraints = []
-    for c, the_reaction in izip(lp.cols, cobra_model.reactions):
+    for c, the_reaction in zip(lp.cols, cobra_model.reactions):
         c.name = the_reaction.id
         c.kind = variable_kind_dict[the_reaction.variable_kind]
         c.bounds = the_reaction.lower_bound, the_reaction.upper_bound
         objective_coefficients.append(float(the_reaction.objective_coefficient))
-        for metabolite, coefficient in the_reaction._metabolites.iteritems():
+        for metabolite, coefficient in iteritems(the_reaction._metabolites):
             metabolite_index = metabolite_to_index[metabolite]
             linear_constraints.append((metabolite_index, c.index, coefficient))
 

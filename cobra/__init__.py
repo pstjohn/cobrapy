@@ -24,7 +24,7 @@ import libsbml
 
 from .core import Object, Metabolite, Gene, Reaction, Model, \
     DictList, Species, Pathway
-from . import io, flux_analysis
+from . import io, flux_analysis, design
 
 try:
     from .core import ArrayBasedModel
