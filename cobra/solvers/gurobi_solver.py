@@ -1,13 +1,17 @@
 # Interface to gurobipy
 
 from warnings import warn
-from itertools import izip
+try:
+    # Import izip for python versions < 3.x
+    from itertools import izip as zip
+except ImportError:
+    pass
 
 from gurobipy import Model, LinExpr, GRB, QuadExpr
 
 from ..core.Solution import Solution
 
-from six import string_types
+from six import string_types, iteritems
 
 try:
     from sympy import Basic, Number
@@ -82,13 +86,13 @@ def format_solution(lp, cobra_model, **kwargs):
     else:
         objective_value = lp.ObjVal
         x = [v.X for v in lp.getVars()]
-        x_dict = {r.id: value for r, value in izip(cobra_model.reactions, x)}
+        x_dict = {r.id: value for r, value in zip(cobra_model.reactions, x)}
         if lp.isMIP:
             y = y_dict = None  # MIP's don't have duals
         else:
             y = [c.Pi for c in lp.getConstrs()]
             y_dict = {m.id: value for m, value
-                      in izip(cobra_model.metabolites, y)}
+                      in zip(cobra_model.metabolites, y)}
         the_solution = Solution(objective_value, x=x, x_dict=x_dict, y=y,
                                 y_dict=y_dict, status=status)
     return(the_solution)
@@ -164,7 +168,7 @@ def create_problem(cobra_model, quadratic_component=None, **kwargs):
         the_parameters = parameter_defaults.copy()
         the_parameters.update(kwargs)
 
-    for k, v in the_parameters.iteritems():
+    for k, v in iteritems(the_parameters):
         set_parameter(lp, k, v)
 
 
@@ -228,7 +232,7 @@ def solve_problem(lp, **kwargs):
 
     """
     #Update parameter settings if provided
-    for k, v in kwargs.iteritems():
+    for k, v in iteritems(kwargs):
         set_parameter(lp, k, v)
 
     lp.update()
