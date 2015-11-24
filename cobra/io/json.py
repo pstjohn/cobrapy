@@ -240,7 +240,7 @@ def save_json_model(model, file_name, pretty=False):
         should_close = True
 
     if pretty:
-        dump_opts = {"indent": 4, "separators": (",", ": "), "sort_keys": True}
+        dump_opts = {"indent": 4, "separators": (",", ": "), "sort_keys": False}
     else:
         dump_opts = {}
 
