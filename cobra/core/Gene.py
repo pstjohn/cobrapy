@@ -22,7 +22,9 @@ replacements = (
     ("/", "__COBRA_FSLASH__"),
     ("\\", "__COBRA_BSLASH"),
     ("-", "__COBRA_DASH__"),
-    ("=", "__COBRA_EQ__")
+    ("=", "__COBRA_EQ__"),
+    ("OR", "or"),
+    ("AND", "and"),
 )
 
 

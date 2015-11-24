@@ -139,7 +139,7 @@ def create_cobra_model_from_sbml_file(sbml_filename, old_sbml=False, legacy_meta
         if "CHARGE" in tmp_metabolite.notes:
             note_charge = tmp_metabolite.notes["CHARGE"][0]
             try:
-                note_charge = float(note_charge)
+                note_charge = float(note_charge) if note_charge else 0.
                 if note_charge == int(note_charge):
                     note_charge = int(note_charge)
             except:

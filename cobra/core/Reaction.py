@@ -613,7 +613,26 @@ class Reaction(Object):
 
     def build_reaction_from_string(self, reaction_str, verbose=True,
                                    fwd_arrow=None, rev_arrow=None,
-                                   reversible_arrow=None, term_split="+"):
+                                   reversible_arrow=None, term_split="+", 
+                                   model=None):
+        """Build a reaction from a string representation. Will build and add
+        metabolites if they are not found in the model, raising a warning.
+
+        Parameters:
+
+        reaction_str: string
+            A string representation of the reaction.
+
+        model: a cobra.Model object
+            A model to use for searching metabolites. If None, will check for
+            an attached model in self._model.
+
+        verbose: bool
+            Whether or not to warn on adding new metabolites.
+    
+        """
+
+
         # set the arrows
         forward_arrow_finder = _forward_arrow_finder if fwd_arrow is None \
             else re.compile(re.escape(fwd_arrow))
@@ -622,12 +641,13 @@ class Reaction(Object):
         reversible_arrow_finder = _reversible_arrow_finder \
             if reversible_arrow is None \
             else re.compile(re.escape(reversible_arrow))
-        if self._model is None:
+        if (self._model is None) & (model is None):
             warn("no model found")
             model = None
         else:
-            model = self._model
-        original_str = "" + reaction_str  # copy
+            model = self._model if self._model else model
+
+        # original_str = "" + reaction_str  # copy (do we need this?)
         found_compartments = compartment_finder.findall(reaction_str)
         if len(found_compartments) == 1:
             compartment = found_compartments[0]
