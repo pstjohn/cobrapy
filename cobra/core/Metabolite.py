@@ -19,7 +19,7 @@ class Metabolite(Species):
     """
 
     def __init__(self, id=None, formula=None,
-                 name=None, compartment=None):
+                 name="", compartment=None):
         """
         id: str
 
