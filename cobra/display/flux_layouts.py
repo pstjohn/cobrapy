@@ -105,15 +105,18 @@ def create_model_json(cobra_model):
             return json.dumps(_to_dict(cobra_model), allow_nan=False)
 
     for metabolite in cobra_model.metabolites:
-        carried_flux = sum([abs(r.x * r.metabolites[metabolite]) for r in
-                            metabolite.reactions])/2
-
         try:
+            carried_flux = sum([abs(r.x * r.metabolites[metabolite]) for r in
+                                metabolite.reactions])/2
             metabolite.notes['map_info']['flux'] = carried_flux
 
         except KeyError:
             # Create a new "map_info" object
             metabolite.notes['map_info'] = {'flux' : carried_flux}
+
+        except AttributeError:
+            # Model likely hasn't been solved, get out now
+            return json.dumps(_to_dict(cobra_model), allow_nan=False)
 
     return json.dumps(_to_dict(cobra_model), allow_nan=False)
 

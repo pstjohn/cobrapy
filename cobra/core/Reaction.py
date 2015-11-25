@@ -698,7 +698,7 @@ class Reaction(Object):
                     met = model.metabolites.get_by_id(met_id)
                 except KeyError:
                     if verbose:
-                        print("unknown metabolite '%s' created" % met_id)
+                        warn("unknown metabolite '%s' created" % met_id)
                     met = Metabolite(met_id)
                 self.add_metabolites({met: num})
 
