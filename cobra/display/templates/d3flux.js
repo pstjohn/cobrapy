@@ -13,8 +13,8 @@ require(["d3", "math", "FileSaver", "d3tip"], function (d3, math, FileSaver, d3t
 
   function main(model) {
 
-    var width = 1024,
-    height = 768;
+    var width = {{ figwidth }},
+    height = {{ figheight }};
 
     var color = d3.scale.category20();
 
@@ -366,6 +366,7 @@ require(["d3", "math", "FileSaver", "d3tip"], function (d3, math, FileSaver, d3t
       .attr("class", "nodelabel")
       .attr("dx", "12")
       .attr("dy", ".35em")
+      .attr("font-size", "{{ fontsize }}pt")
       .text(function(d) { return d.name; });
 
     var updateNode = function() {

@@ -385,7 +385,7 @@ class Model(Object):
                     if hasattr(objectives, "items") else 1.
 
 
-    def summary(self, tol=1E-8, round=2):
+    def summary(self, tol=1E-8, round=2, fva=None):
         """Print a summary of the input and output fluxes of the model.
         
         tol: float
@@ -393,6 +393,10 @@ class Model(Object):
 
         round: int
             number of digits after the decimal place to print
+
+        fva: int or None
+            Whether or not to calculate and report flux variability in the
+            output summary
 
 
         perhaps I should remove the pandas requirement? ive used it pretty much
@@ -404,21 +408,72 @@ class Model(Object):
         in_rxns = self.reactions.query(
             lambda rxn: rxn.x < -tol).query('system_boundary', 'boundary')
 
-        out_fluxes = pd.Series({r.reactants[0] : r.x for r in out_rxns})
-        in_fluxes = pd.Series({r.reactants[0] : r.x for r in in_rxns})
-
-        out_fluxes = pd.np.round(out_fluxes.sort_values(ascending=False), round)
-        in_fluxes  = pd.np.round(in_fluxes.sort_values(), round)
-        
-        obj_fluxes = pd.Series({'{:<15}'.format(r.id): '{:.3f}'.format(r.x) 
+        obj_fluxes = pd.Series({'{:<15}'.format(r.id): '{:.3f}'.format(r.x)
                                 for r in self.objective.iterkeys()})
 
-        print '\n'.join(["{a:<30}{b:<30}{c:<20}".format(
-            a=(a if a else ''), b=(b if b else ''), c=(c if c else ''))
-                          for a, b, c in itertools.izip_longest(
-                                  ['IN FLUXES'] + in_fluxes.to_string().split('\n'), 
-                                  ['OUT FLUXES'] + out_fluxes.to_string().split('\n'),
-                                  ['OBJECTIVES'] + obj_fluxes.to_string().split('\n'))]) 
+
+        if not fva:
+            
+            out_fluxes = pd.Series({r.reactants[0] : r.x for r in out_rxns})
+            in_fluxes = pd.Series({r.reactants[0] : r.x for r in in_rxns})
+
+            out_fluxes = pd.np.round(out_fluxes.sort_values(ascending=False), round)
+            in_fluxes  = pd.np.round(in_fluxes.sort_values(), round)
+
+            table = pd.np.array(
+                [((a if a else ''), (b if b else ''), (c if c else ''))
+                 for a, b, c in itertools.izip_longest(
+                         ['IN FLUXES'] + in_fluxes.to_string().split('\n'), 
+                         ['OUT FLUXES'] + out_fluxes.to_string().split('\n'),
+                         ['OBJECTIVES'] + obj_fluxes.to_string().split('\n'))])
+
+
+        else:
+            from ..flux_analysis.variability import flux_variability_analysis
+            fva_results = pd.DataFrame(
+                flux_variability_analysis(self, in_rxns + out_rxns,
+                                          fraction_of_optimum=fva)).T
+
+            half_span = (fva_results.maximum - fva_results.minimum)/2
+            median = fva_results.minimum + half_span
+
+            out_fluxes = pd.DataFrame(
+                {r.reactants[0] : {'x'   : median.loc[r.id], 
+                                   'err' : half_span.loc[r.id]}
+                 for r in out_rxns}).T
+
+            in_fluxes = pd.DataFrame(
+                {r.reactants[0] : {'x'   : median.loc[r.id], 
+                                   'err' : half_span.loc[r.id]}
+                 for r in in_rxns}).T
+
+            out_fluxes = pd.np.round(
+                out_fluxes.sort_values(by='x', ascending=False), round)
+            in_fluxes  = pd.np.round(
+                in_fluxes.sort_values(by='x'), round)
+
+            in_fluxes_s = in_fluxes.apply(
+                lambda x: u'{0:0.2f} \u00B1 {0:0.2f}'.format(x.x, x.err),
+                axis=1)
+            out_fluxes_s = out_fluxes.apply(
+                lambda x: u'{0:0.2f} \u00B1 {0:0.2f}'.format(x.x, x.err),
+                axis=1)
+            out_fluxes_s = out_fluxes.apply(lambda x: unicode(x.x) + u" \u00B1 "
+                                          + unicode(x.err), axis=1)
+            # out_fluxes_s = out_fluxes.apply(lambda x: unicode(x.x) + u" \u00B1 "
+            #                               + unicode(x.err), axis=1)
+
+
+            table = pd.np.array(
+                [((a if a else ''), (b if b else ''), (c if c else ''))
+                 for a, b, c in itertools.izip_longest(
+                         ['IN FLUXES'] + in_fluxes_s.to_string().split('\n'), 
+                         ['OUT FLUXES'] + out_fluxes_s.to_string().split('\n'),
+                         ['OBJECTIVES'] + obj_fluxes.to_string().split('\n'))])
+
+
+
+        print u'\n'.join([u"{a:<30}{b:<30}{c:<20}".format(a=a, b=b, c=c) for a,b,c in table])
 
 
     def to_json(self, filename, pretty=False):

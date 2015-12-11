@@ -275,6 +275,7 @@ def generate_model_matricies(cobra_model):
     # add additional constraints to the system.
     A_red = independent_rows(A)
 
+    # return A_red, c, ub, lb, nr, nm
     return A_red, c, ub, lb, nr, nm
 
 

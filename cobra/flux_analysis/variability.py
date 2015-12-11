@@ -119,6 +119,8 @@ def find_metabolite_capability(cobra_model, metabolite_list=None):
 
     """
 
+    cobra_model = cobra_model.copy()
+
     if metabolite_list is None:
         metabolite_list = cobra_model.metabolites
 

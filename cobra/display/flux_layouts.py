@@ -123,8 +123,35 @@ def create_model_json(cobra_model):
 
 
 def render_model(cobra_model, background_template=None, custom_css=None,
-                 figure_id=None, hide_unused=None):
-    """ Render a cobra.Model object in the current window """
+                 figure_id=None, hide_unused=None, figsize=None, label=None,
+                 fontsize=None):
+    """ Render a cobra.Model object in the current window 
+    
+    Parameters:
+
+    background_template: 
+        filename for an SVG to render behind the flux figure.  Useful for
+        compartments or layout guides.
+
+    custom_css:
+        Additional CSS to embed in the figure. Use HTML inspector to show
+        labels and classes applied to reactions and metabolites.
+
+    figure_id:
+        Each figure in the page requires a unique ID, which can be passed or
+        generated automatically.
+
+    hide_unused:
+        whether or not to show metabolites and reactions with zero flux.
+
+    figsize:
+        size, in pixels, of the generated SVG window. Defaults to 1024x768.
+
+    fontsize:
+        text size, in pt. Defaults to 12
+        
+
+    """
 
     # Increment figure counter
 
@@ -132,6 +159,10 @@ def render_model(cobra_model, background_template=None, custom_css=None,
     if not figure_id:
         render_model._fignum += 1
         figure_id = 'd3flux{:0>3d}'.format(render_model._fignum)
+
+
+    if not figsize:
+        figsize = (1028, 768)
 
     modeljson = create_model_json(cobra_model)
 
@@ -142,6 +173,8 @@ def render_model(cobra_model, background_template=None, custom_css=None,
     # Handle custom CSS
     if not custom_css: 
         custom_css = ''
+
+    if not fontsize: fontsize = 12
 
     # Handle background template
     if not background_template:
@@ -162,7 +195,8 @@ def render_model(cobra_model, background_template=None, custom_css=None,
 
     js = template_js.render(figure_id=figure_id, modeljson=modeljson,
                             no_background=no_background,
-                            hide_unused=hide_unused)
+                            hide_unused=hide_unused, figwidth=figsize[0],
+                            figheight=figsize[1], fontsize=fontsize)
 
     html = template_html.render(figure_id=figure_id,
                                 background_svg=background_svg,
