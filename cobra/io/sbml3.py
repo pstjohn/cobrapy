@@ -129,8 +129,11 @@ class CobraSBMLError(Exception):
 def get_attrib(tag, attribute, type=lambda x: x, require=False):
     value = tag.get(ns(attribute))
     if require and value is None:
-        raise CobraSBMLError("required attribute '%s' not found in tag '%s'" %
-                             (attribute, tag.tag))
+        msg = "required attribute '%s' not found in tag '%s'" % \
+                             (attribute, tag.tag)
+        if tag.get("id") is not None:
+            msg += "with id '%s'" % tag.get("id")
+        raise CobraSBMLError(msg)
     return type(value) if value is not None else None
 
 
@@ -691,8 +694,9 @@ def write_sbml_model(cobra_model, filename, use_fbc_package=True, **kwargs):
         return
     # create xml
     xml = model_to_xml(cobra_model, **kwargs)
-    write_args = {"encoding": "UTF-8"}
+    write_args = {"encoding": "UTF-8", "xml_declaration": True}
     if _with_lxml:
+        write_args["pretty_print"] = True
         write_args["pretty_print"] = True
     else:
         indent_xml(xml)
