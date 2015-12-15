@@ -28,4 +28,3 @@ class Object(object):
     _str_method = 'id'
     def __str__(self):
         return str(self.__getattribute__(self._str_method))
-
