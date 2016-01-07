@@ -8,6 +8,20 @@ import numpy as np
 import pandas as pd
 from ..core import Reaction
 
+def scale_df(df):
+    df_ss = np.sqrt((df**2).sum(1))
+    to_drop = df_ss[df_ss == 0].index
+    df_t = df.drop(to_drop)
+    df_ss = df_ss.drop(to_drop)
+    return df_t.divide(df_ss.values, axis='rows'), to_drop
+
+def remove_duplicates(df, tol=1E-4):
+    df_round = df.fillna(0)
+    df_round, to_drop = scale_df(df_round)
+    df = df.drop(to_drop)
+    df_round = np.round(df_round, decimals=int(-np.log10(1E-4)))
+    return df.ix[~(df_round*(1/tol)).astype('int64').duplicated()]
+
 def boundary_efms(cobra_model, efms, tol=1E-4):
     """Shortcut method to condense elementary flux modes to a unique set of
     input-output modes.
@@ -22,20 +36,6 @@ def boundary_efms(cobra_model, efms, tol=1E-4):
         Tolerance for combining similar elementary flux modes
 
     """
-
-    def scale_df(df):
-        df_ss = np.sqrt((df**2).sum(1))
-        to_drop = df_ss[df_ss == 0].index
-        df_t = df.drop(to_drop)
-        df_ss = df_ss.drop(to_drop)
-        return df_t.divide(df_ss.values, axis='rows'), to_drop
-
-    def remove_duplicates(df, tol=1E-4):
-        df_round = df.fillna(0)
-        df_round, to_drop = scale_df(df_round)
-        df = df.drop(to_drop)
-        df_round = np.round(df_round, decimals=int(-np.log10(1E-4)))
-        return df.ix[~(df_round*(1/tol)).astype('int64').duplicated()]
     
     # Get the boundary reactions from the cobra.Model
     boundary_rxns = [r.id for r in cobra_model.reactions.query(
