@@ -394,7 +394,7 @@ def get_libsbml_document(cobra_model,
         
     
     sbml_doc = SBMLDocument(sbml_level, sbml_version)
-    sbml_model = sbml_doc.createModel(cobra_model.id.split('.')[0])
+    sbml_model = sbml_doc.createModel(str(cobra_model.id.split('.')[0]))
     #Note need to set units
     reaction_units = 'mmol_per_gDW_per_hr'
     model_units = sbml_model.createUnitDefinition()
@@ -572,7 +572,7 @@ def add_sbml_species(sbml_model, cobra_metabolite, note_start_tag,
 
     """
     sbml_species = sbml_model.createSpecies()
-    the_id = 'M_' + cobra_metabolite.id.replace('-', '__')
+    the_id = 'M_' + str(cobra_metabolite.id.replace('-', '__'))
     #Deal with legacy naming issues
     the_compartment = cobra_metabolite.compartment
     if the_id.endswith('[%s]'%the_compartment):
@@ -586,12 +586,12 @@ def add_sbml_species(sbml_model, cobra_metabolite, note_start_tag,
     if boundary_metabolite:
         sbml_species.setBoundaryCondition(True)
     if cobra_metabolite.name:
-        sbml_species.setName(cobra_metabolite.name)
+        sbml_species.setName(str(cobra_metabolite.name))
     else:
         sbml_species.setName(cobra_metabolite.id)
     if the_compartment is not None:
         try:
-            sbml_species.setCompartment(the_compartment)
+            sbml_species.setCompartment(str(the_compartment))
         except:
             warn('metabolite failed: ' + the_id)
             return cobra_metabolite
@@ -621,7 +621,7 @@ def add_sbml_species(sbml_model, cobra_metabolite, note_start_tag,
                 tmp_note += '%s%s: %s%s'%(note_start_tag,
                                              the_id_type,
                                              the_id, note_end_tag)
-        sbml_species.setNotes(tmp_note + '</html>')
+        sbml_species.setNotes(str(tmp_note) + '</html>')
     return metabolite_id
 
 
