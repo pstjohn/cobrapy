@@ -122,4 +122,26 @@ class DataframeBasedModel(Model):
 
         self._S.replace(pd.np.NaN, 0, inplace=True)
 
+
+    @property
+    def lower_bounds(self):
+        return pd.Series([r.lower_bound for r in self.reactions],
+                         index=[r.id for r in self.reactions])
+
+    @property
+    def upper_bounds(self):
+        return pd.Series([r.upper_bound for r in self.reactions],
+                         index=[r.id for r in self.reactions])
+
+    @property
+    def fluxes(self):
+        return pd.Series([r.x for r in self.reactions],
+                         index=[r.id for r in self.reactions])
+
+    @property
+    def objectives(self):
+        return pd.Series([r.objective_coefficient for r in self.reactions],
+                         index=[r.id for r in self.reactions])
+
+
         

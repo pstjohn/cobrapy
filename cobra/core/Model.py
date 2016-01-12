@@ -453,10 +453,10 @@ class Model(Object):
                 in_fluxes.sort_values(by='x'), round)
 
             in_fluxes_s = in_fluxes.apply(
-                lambda x: u'{0:0.2f} \u00B1 {0:0.2f}'.format(x.x, x.err),
+                lambda x: u'{0:0.2f} \u00B1 {1:0.2f}'.format(x.x, x.err),
                 axis=1)
             out_fluxes_s = out_fluxes.apply(
-                lambda x: u'{0:0.2f} \u00B1 {0:0.2f}'.format(x.x, x.err),
+                lambda x: u'{0:0.2f} \u00B1 {1:0.2f}'.format(x.x, x.err),
                 axis=1)
             out_fluxes_s = out_fluxes.apply(lambda x: unicode(x.x) + u" \u00B1 "
                                           + unicode(x.err), axis=1)

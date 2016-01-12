@@ -141,7 +141,8 @@ class Metabolite(Species):
             raise Exception(method + " is not 'subtractive' or 'destructive'")
 
 
-    def summary(self, ignore_inactive=0.01, element=None, ret_df=False):
+    def summary(self, ignore_inactive=0.01, element=None, ret_df=False,
+                fva=None):
         """ Print a summary of the reactions which produce and consume this
         metabolite 
         
@@ -199,31 +200,67 @@ class Metabolite(Species):
         for df in [producing, consuming]:
             df['percent'] = df.flux / df.flux.sum()
             df.drop(df[df['percent'] < ignore_inactive].index, axis=0, inplace=True)
-            df['reaction'] = df['reaction'].map(lambda x: x[:54])
-            df['id'] = df['id'].map(lambda x: x[:8])
+
             # df['%'] = df['%'].map('{:.1f}%'.format)
 
         producing.sort_values('percent', ascending=False, inplace=True)
         consuming.sort_values('percent', ascending=False, inplace=True)
 
+        if not fva: 
+
+            producing.flux = producing.flux.apply(
+                lambda x: '{:6.2g}'.format(x))
+            consuming.flux = consuming.flux.apply(
+                lambda x: '{:6.2g}'.format(x))
+
+            flux_len = 6
+
+        else:
+            from ..flux_analysis.variability import flux_variability_analysis
+            fva_results = pd.DataFrame(
+                flux_variability_analysis(self.model, self.reactions,
+                                          fraction_of_optimum=fva)).T
+            half_span = (fva_results.maximum - fva_results.minimum)/2
+            median = fva_results.minimum + half_span
+
+            producing.flux = producing.id.apply(
+                lambda x, median=median, err=half_span: 
+                u'{0:0.2f} \u00B1 {1:0.2f}'.format(median[x], err[x]))
+            consuming.flux = consuming.id.apply(
+                lambda x, median=median, err=half_span: 
+                u'{0:0.2f} \u00B1 {1:0.2f}'.format(median[x], err[x]))
+
+            flux_len = max(producing.flux.apply(len).max(), 
+                           consuming.flux.apply(len).max()) + 1
+
+
+        for df in [producing, consuming]:
+
+           df['reaction'] = df['reaction'].map(lambda x: x[:54])
+           df['id'] = df['id'].map(lambda x: x[:8])
+
+
+
         head = "PRODUCING REACTIONS -- " + self.name[:55]
         print head
         print "-"*len(head)
-        print "{0:^6} {1:>6} {2:>8} {3:^54}".format('%', 'FLUX', 'RXN ID',
-                                                    'REACTION')
+        print ("{0:^6} {1:>" + str(flux_len) + "} {2:>8} {3:^54}").format(
+                   '%', 'FLUX', 'RXN ID', 'REACTION')
 
         for row in producing.iterrows():
-            print "{0.percent:6.1%} {0.flux:6.2g} {0.id:>8} {0.reaction:>54}".format(row[1])
+            print (u"{0.percent:6.1%} {0.flux:>" + str(flux_len) + 
+                   "} {0.id:>8} {0.reaction:>54}").format(row[1])
 
 
         print
         print "CONSUMING REACTIONS -- " + self.name[:55]
         print "-"*len(head)
-        print "{0:^6} {1:>6} {2:>8} {3:^54}".format('%', 'FLUX', 'RXN ID',
-                                                    'REACTION')
+        print ("{0:^6} {1:>" + str(flux_len) + "} {2:>8} {3:^54}").format(
+                   '%', 'FLUX', 'RXN ID', 'REACTION')
 
         for row in consuming.iterrows():
-            print "{0.percent:6.1%} {0.flux:6.2g} {0.id:>8} {0.reaction:>54}".format(row[1])
+            print (u"{0.percent:6.1%} {0.flux:>" + str(flux_len) + 
+                   "} {0.id:>8} {0.reaction:>54}").format(row[1])
 
 
     def __add__(self, other_metabolite):
