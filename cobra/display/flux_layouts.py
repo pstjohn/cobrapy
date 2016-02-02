@@ -191,7 +191,8 @@ def render_model(cobra_model, background_template=None, custom_css=None,
     template_js = env.get_template('d3flux.js')
 
     # Render the jinja templates with the given variables
-    css = template_css.render()
+    css = template_css.render(figure_id=figure_id, figwidth=figsize[0],
+                            figheight=figsize[1])
 
     js = template_js.render(figure_id=figure_id, modeljson=modeljson,
                             no_background=no_background,

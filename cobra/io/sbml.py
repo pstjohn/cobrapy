@@ -49,7 +49,7 @@ def parse_legacy_id(the_id, the_compartment=None, the_type='metabolite',
         the_id += '[%s]'%the_compartment
     return the_id
 def create_cobra_model_from_sbml_file(sbml_filename, old_sbml=False, legacy_metabolite=False,
-                                      print_time=False, use_hyphens=False):
+                                      print_time=False, use_hyphens=False, debug=False):
     """convert an SBML XML file into a cobra.Model object.  Supports
     SBML Level 2 Versions 1 and 4.  The function will detect if the SBML fbc package is used in the file
     and run the converter if the fbc package is used.
@@ -294,6 +294,9 @@ def create_cobra_model_from_sbml_file(sbml_filename, old_sbml=False, legacy_meta
             reaction.subsystem = reaction_note_dict.pop('SUBSYSTEM')[0]
 
         reaction.notes = reaction_note_dict
+
+        # PSTJ: some weird behavior on some models here
+        if debug: reaction.notes['sbml_reversible'] = sbml_reaction.getReversible()
 
         # Unused notes should be added to the reaction notes dictionary
         standard_notes = frozenset(['GENE ASSOCIATION', 'GENE LIST', 'GENES',
@@ -652,9 +655,9 @@ def fix_legacy_id(id, use_hyphens=False, fix_compartments=False):
     return id
 
 
-def read_legacy_sbml(filename, use_hyphens=False):
+def read_legacy_sbml(filename, use_hyphens=False, debug=False):
     """read in an sbml file and fix the sbml id's"""
-    model = create_cobra_model_from_sbml_file(filename, old_sbml=True)
+    model = create_cobra_model_from_sbml_file(filename, old_sbml=True, debug=debug)
     for metabolite in model.metabolites:
         metabolite.id = fix_legacy_id(metabolite.id)
     model.metabolites._generate_index()
