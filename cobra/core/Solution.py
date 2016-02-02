@@ -55,6 +55,11 @@ class Solution(object):
             json.dump(self.x_dict, f, indent=indent, sort_keys=sort_keys)
         return
 
+    def dress_results(self, model):
+        """.. warning :: deprecated"""
+        from warnings import warn
+        warn("unnecessary to call this deprecated function")
+
     def __repr__(self):
         if self.f is None:
             return "<Solution '%s' at 0x%x>" % (self.status, id(self))
