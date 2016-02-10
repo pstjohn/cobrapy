@@ -225,6 +225,18 @@ class TestManipulation(TestCase):
         errors = check_metabolite_compartment_formula(model)
         self.assertEqual(len(errors), 2)
 
+    def test_validate_formula_setting(self):
+        model = create_test_model("textbook")
+        met = model.metabolites[1]
+        tmp_elements = dict(met.elements)
+        met.formula = ''
+        self.assertEqual(met.elements, {})
+        met.elements = tmp_elements
+
+        # Because dictionaries are not ordered, we have no way of gaurenteeing
+        # that the formula order is preseved
+        self.assertIn('C3', met.formula)
+
     def test_validate_mass_balance(self):
         model = create_test_model("textbook")
         self.assertEqual(len(check_mass_balance(model)), 0)
