@@ -81,7 +81,7 @@ class Metabolite(Species):
     def elements(self, elements_dict):
 
         def formula_items():
-            for element, stoich in elements_dict.iteritems():
+            for element, stoich in elements_dict.items():
                 # Ignore stoichiometric entries close to machine precision.
                 if abs(stoich) < 1E-10: continue
                 yield ''.join((element, str(stoich) if stoich != 1 else ''))
