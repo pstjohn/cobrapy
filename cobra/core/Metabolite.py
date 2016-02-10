@@ -4,6 +4,8 @@ from copy import deepcopy
 
 import pandas as pd
 
+from six import iteritems
+
 from .Species import Species
 
 # Numbers are not required because of the |(?=[A-Z])? block. See the
@@ -56,7 +58,7 @@ class Metabolite(Species):
 
     @formula.setter
     def formula(self, formula):
-        formula = str(formula)
+        formula = str(formula) if formula is not None else ''
         if "*" in formula:
             warn("invalid character '*' found in formula '%s'" % formula)
             formula = formula.replace("*", "")
@@ -84,7 +86,7 @@ class Metabolite(Species):
     def elements(self, elements_dict):
 
         def formula_items():
-            for element, stoich in elements_dict.items():
+            for element, stoich in iteritems(elements_dict):
                 # Ignore stoichiometric entries close to machine precision.
                 if abs(stoich) < 1E-10: continue
                 yield ''.join((element, str(stoich) if stoich != 1 else ''))
