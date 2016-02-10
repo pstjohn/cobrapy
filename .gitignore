@@ -19,3 +19,4 @@ examples/faq.py
 documentation_builder/test*\.*
 
 *.sw[o,p]
+cobra/solvers/cglpk.so.dSYM/
