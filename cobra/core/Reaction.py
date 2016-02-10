@@ -596,7 +596,7 @@ class Reaction(Object):
             for element, amount in iteritems(metabolite.elements):
                 reaction_element_dict[element] += coefficient * amount
         # filter out 0 values
-        return {k: v for k, v in iteritems(reaction_element_dict) if v != 0}
+        return {k: v for k, v in iteritems(reaction_element_dict) if abs(v) > 1E-10}
 
     @property
     def compartments(self):
