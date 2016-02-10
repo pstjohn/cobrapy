@@ -471,7 +471,7 @@ class Reaction(Object):
         from the reaction.
 
         metabolites: dict
-            {:class:`~cobra.core.Metabolite.Metabolite`: coefficient}
+            {str or :class:`~cobra.core.Metabolite.Metabolite`: coefficient}
 
         combine: Boolean.
             Describes behavior a metabolite already exists in the reaction.
@@ -484,13 +484,14 @@ class Reaction(Object):
             the reaction is associated with (i.e. self.model)
 
         """
-        _id_to_metabolites = {x.id: x for x in self._metabolites}
+        _id_to_metabolites = {str(x): x for x in self._metabolites}
         new_metabolites = []
         for metabolite, coefficient in iteritems(metabolites):
+            met_id = str(metabolite)
             # If a metabolite already exists in the reaction then
             # just add them.
-            if metabolite.id in _id_to_metabolites:
-                reaction_metabolite = _id_to_metabolites[metabolite.id]
+            if met_id in _id_to_metabolites:
+                reaction_metabolite = _id_to_metabolites[met_id]
                 if combine:
                     self._metabolites[reaction_metabolite] += coefficient
                 else:
@@ -498,11 +499,20 @@ class Reaction(Object):
             else:
                 # If the reaction is in a model, ensure we aren't using
                 # a duplicate metabolite.
-                try:
-                    metabolite = \
-                        self._model.metabolites.get_by_id(metabolite.id)
-                except:
-                    new_metabolites.append(metabolite)
+                if self._model:
+                    try:
+                        metabolite = \
+                            self._model.metabolites.get_by_id(met_id)
+                    except KeyError as e:
+                        if isinstance(metabolite, Metabolite):
+                            new_metabolites.append(metabolite)
+                        else:
+                            # do we want to handle creation here?
+                            raise e
+                elif isinstance(metabolite, string_types):
+                    # if we want to handle creation, this should be changed
+                    raise ValueError("reaction '%s' does not belong to a model"
+                                     % self.id)
                 self._metabolites[metabolite] = coefficient
                 # make the metabolite aware that it is involved in this
                 # reaction
@@ -642,6 +652,30 @@ class Reaction(Object):
         """
 
 
+        """Builds reaction from reaction equation reaction_str using parser
+
+        Takes a string and using the specifications supplied in the optional
+        arguments infers a set of metabolites, metabolite compartments and
+        stoichiometries for the reaction.  It also infers the reversibility
+        of the reaction from the reaction arrow.
+
+        Args:
+            reaction_str: a string containing a reaction formula (equation)
+            verbose: Boolean setting verbosity of function
+                (optional, default=True)
+            fwd_arrow: re.compile for forward irreversible reaction arrows
+                (optional, default=_forward_arrow_finder)
+            reverse_arrow: re.compile for backward irreversible reaction arrows
+                (optional, default=_reverse_arrow_finder)
+            fwd_arrow: re.compile for reversible reaction arrows
+                (optional, default=_reversible_arrow_finder)
+            term_split: String dividing individual metabolite entries
+                (optional, default='+')
+            model: a cobra.Model object to use for searching metabolites. If
+                None, will check for an attached model in self._model.
+                
+
+        """
         # set the arrows
         forward_arrow_finder = _forward_arrow_finder if fwd_arrow is None \
             else re.compile(re.escape(fwd_arrow))
