@@ -5,6 +5,7 @@ A D3-based network layout engine for plotting model solutions in the jupyter win
 import os
 import json
 import itertools
+import re
 
 from jinja2 import Environment, FileSystemLoader
 from IPython.display import HTML
@@ -15,13 +16,48 @@ env = Environment(loader=FileSystemLoader(
     os.path.join(os.path.dirname(__file__), 'templates')))
 
 
-def flux_map(cobra_model, included_metabolites=None,
+def flux_map(cobra_model, 
              excluded_metabolites=None, excluded_reactions=None,
-             excluded_compartments=None, **kwargs):
+             excluded_compartments=None, display_name_format=True,
+             **kwargs):
     """Create a flux map representation of the cobra.Model, including or
     excluding the given metabolites, reactions, and/or compartments.
 
-    Additional kwargs are passed directly to `render_model`
+    excluded_metabolites:
+        A list of metabolites to not include. Probably better to simply set
+        met.notes['map_info']['hidden'] = True
+
+    excluded_reactions:
+        A list of reactions not to display.
+
+    excluded_compartment:
+        Hide metabolites not in a compartment
+
+    diplay_name_format: Bool or function
+        How to format the metabolite names in map.display_name.
+
+    Additional kwargs are passed directly to `render_model`:
+
+    background_template: 
+        filename for an SVG to render behind the flux figure.  Useful for
+        compartments or layout guides.
+
+    custom_css:
+        Additional CSS to embed in the figure. Use HTML inspector to show
+        labels and classes applied to reactions and metabolites.
+
+    figure_id:
+        Each figure in the page requires a unique ID, which can be passed or
+        generated automatically.
+
+    hide_unused:
+        whether or not to show metabolites and reactions with zero flux.
+
+    figsize:
+        size, in pixels, of the generated SVG window. Defaults to 1024x768.
+
+    fontsize:
+        text size, in pt. Defaults to 12
     
     """
     # build cofactor metabolites from strings
@@ -69,6 +105,25 @@ def flux_map(cobra_model, included_metabolites=None,
     for metabolite in excluded_metabolites:
         metabolite.notes['map_info'] = {'hidden' : True}
 
+    # Add diplay names to the cobra metabolites accoring to the
+    # display_name_format function
+    if display_name_format:
+
+        # Handle the case for a default display name formatter.
+        if display_name_format == True:
+            display_name_format = (
+                lambda met: re.sub('__[D,L]', '', met.id[:-2].upper()))
+
+        for met in cobra_model.metabolites:
+
+            if 'map_info' not in met.notes:
+                met.notes['map_info'] = {}
+
+            # Don't overwrite existing display names
+            if 'display_name' not in met.notes['map_info']:
+                met.notes['map_info']['display_name'] = (
+                    display_name_format(met))
+        
     return render_model(cobra_model, **kwargs)
 
 

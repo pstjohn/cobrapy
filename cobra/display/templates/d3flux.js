@@ -437,7 +437,16 @@ require(["d3", "math", "FileSaver", "d3tip"], function (d3, math, FileSaver, d3t
           return "{{ fontsize }}pt";
         }
       })
-      .text(function(d) { return d.name; });
+    .text(function(d) { 
+      if ('map_info' in d.notes) {
+        if ('display_name' in d.notes.map_info) {
+          return d.notes.map_info.display_name;
+        }
+      }
+      // Must not have returned a display name, return the metabolite name
+      // instead
+      return d.name; 
+    });
 
     var updateNode = function() {
       this.attr("transform", function(d) {
