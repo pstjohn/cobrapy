@@ -403,16 +403,16 @@ class Model(Object):
         everywhere else though, so once more shouldnt hurt.
 
         """
-        out_rxns = self.reactions.query(
-            lambda rxn: rxn.x > tol).query('system_boundary', 'boundary')
-        in_rxns = self.reactions.query(
-            lambda rxn: rxn.x < -tol).query('system_boundary', 'boundary')
 
         obj_fluxes = pd.Series({'{:<15}'.format(r.id): '{:.3f}'.format(r.x)
                                 for r in self.objective.iterkeys()})
 
-
         if not fva:
+
+            out_rxns = self.reactions.query(
+                lambda rxn: rxn.x > tol).query('system_boundary', 'boundary')
+            in_rxns = self.reactions.query(
+                lambda rxn: rxn.x < -tol).query('system_boundary', 'boundary')
             
             out_fluxes = pd.Series({r.reactants[0] : r.x for r in out_rxns})
             in_fluxes = pd.Series({r.reactants[0] : r.x for r in in_rxns})
@@ -431,11 +431,18 @@ class Model(Object):
         else:
             from ..flux_analysis.variability import flux_variability_analysis
             fva_results = pd.DataFrame(
-                flux_variability_analysis(self, in_rxns + out_rxns,
-                                          fraction_of_optimum=fva)).T
+                flux_variability_analysis(self, fraction_of_optimum=fva)).T
 
             half_span = (fva_results.maximum - fva_results.minimum)/2
             median = fva_results.minimum + half_span
+
+            out_rxns = self.reactions.query(
+                lambda rxn: median.loc[rxn.id] > tol
+            ).query('system_boundary', 'boundary')
+
+            in_rxns = self.reactions.query(
+                lambda rxn: median.loc[rxn.id] < -tol
+            ).query('system_boundary', 'boundary')
 
             out_fluxes = pd.DataFrame(
                 {r.reactants[0] : {'x'   : median.loc[r.id], 

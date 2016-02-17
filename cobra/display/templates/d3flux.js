@@ -201,6 +201,15 @@ require(["d3", "math", "FileSaver", "d3tip"], function (d3, math, FileSaver, d3t
                 'cofactor' : reaction.id
               };
 
+              // Get the cofactor display name from the original 
+              // metabolite node
+              if ('map_info' in orig_metabolite.notes) {
+                if ('display_name' in orig_metabolite.notes.map_info) {
+                  cofactor_node.notes.map_info.display_name =
+                    orig_metabolite.notes.map_info.display_name;
+                }
+              }
+
               reaction.metabolites[cf_id] = reaction.metabolites[cofactor];
               delete reaction.metabolites[cofactor];
 
@@ -450,7 +459,8 @@ require(["d3", "math", "FileSaver", "d3tip"], function (d3, math, FileSaver, d3t
 
     var updateNode = function() {
       this.attr("transform", function(d) {
-        return "translate(" + d.x + "," + d.y + ")";
+        return "translate(" + Math.max(0, Math.min(width, d.x)) + ","
+          + Math.max(0, Math.min(height, d.y)) + ")";
       });
     }
 

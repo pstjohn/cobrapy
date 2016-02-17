@@ -22,8 +22,7 @@ def redox_summary(cobra_model, tol=1E-8, ox_cofactors=None):
 def color_redox_rxns(cobra_model, reset_groups=True, color_knockouts=True,
                      starting_group=1, **kwargs):
     """Add group info to the cobra_model according to the results of
-    `redox_summary`. Additional kwargs are passed directly to the redox_summary
-    function call.
+    `redox_summary`. 
 
     cobra_model: a cobra.Model object
 
@@ -38,6 +37,15 @@ def color_redox_rxns(cobra_model, reset_groups=True, color_knockouts=True,
     starting_group: int
         To use different colors, start from a group other than 1. (Highest
         color is 8)
+
+    Additional kwargs are passed directly to the `redox_summary` function call:
+
+    tol: int, default 1E-8
+        flux tolerance above which to include the reaction
+    
+    ox_cofactors: list, default is common_ox_cofactors
+        Cofactors which are produced or consumed in several reactions to use as
+        the basis for coloring the flux model.
 
     """
     # Pop existing group info
