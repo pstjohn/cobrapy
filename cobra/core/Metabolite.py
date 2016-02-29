@@ -6,6 +6,8 @@ import pandas as pd
 
 from six import iteritems
 
+from six import iteritems
+
 from .Species import Species
 
 # Numbers are not required because of the |(?=[A-Z])? block. See the
@@ -20,8 +22,8 @@ class Metabolite(Species):
 
     """
 
-    def __init__(self, id=None, formula=None,
-                 name="", compartment=None):
+    def __init__(self, id=None, formula=None, name="",
+                 charge=None, compartment=None):
         """
         id: str
 
@@ -40,7 +42,7 @@ class Metabolite(Species):
         self.formula = formula
         # because in a Model a metabolite may participate in multiple Reactions
         self.compartment = compartment
-        self.charge = None
+        self.charge = charge
 
         self._constraint_sense = 'E'
         self._bound = 0.
@@ -92,6 +94,14 @@ class Metabolite(Species):
                 yield ''.join((element, str(stoich) if stoich != 1 else ''))
 
         self.formula = ''.join(formula_items())
+
+    @elements.setter
+    def elements(self, elements_dict):
+        def stringify(element, number):
+            return element if number == 1 else element + str(number)
+
+        self.formula = ''.join(stringify(e, n) for e, n in
+                               sorted(iteritems(elements_dict)))
 
     @property
     def formula_weight(self):
@@ -151,128 +161,25 @@ class Metabolite(Species):
         else:
             raise Exception(method + " is not 'subtractive' or 'destructive'")
 
+    def summary(self, **kwargs):
+        """Print a summary of the reactions which produce and consume this
+        metabolite. This method requires the model for which this metabolite is
+        a part to be solved.
 
-    def summary(self, ignore_inactive=0.01, element=None, ret_df=False,
-                fva=None):
-        """ Print a summary of the reactions which produce and consume this
-        metabolite 
-        
-        ignore_inactive: float
-            A [0, 1] value which specifies the fraction beneath which fluxes
-            are ignored
+        threshold: float
+            a value below which to ignore reaction fluxes
 
-        element: None or str
-            If not None, multiplies fluxes the by the composition of the given
-            element.
-            
-        ret_df: bool
-            If true, return the flux_summary dataframe
+        fva: float (0->1), or None
+            Whether or not to include flux variability analysis in the output.
+            If given, fva should be a float between 0 and 1, representing the
+            fraction of the optimum objective to be searched.
 
         """
-
-        def rxn_generator():
-            for rxn in self.reactions:
-                return_dict = {
-                    'id' : rxn.id,
-                }
-
-                # Correct the direction of the reaction. A positive flux
-                # produces the metabolite
-                return_dict['flux'] = rxn.x * rxn.metabolites[self]
-
-                # Correct to moles of element if one was provided
-                if element: return_dict['flux'] *= self.elements[element]
-                
-
-                return_dict['reaction'] = rxn.reaction
-                # # Correct the reaction direction for reactions running in
-                # # reverse
-                # if rxn.x >= 0:
-                #     return_dict['reaction'] = rxn.reaction
-
-                # elif rxn.x < 0:
-                #     # Invert reaction direction
-                #     return_dict['reaction'] = (-rxn).reaction
-
-                yield return_dict
-
-        flux_summary = pd.DataFrame(rxn_generator())
-
-        assert flux_summary.flux.sum() < 1E-6, "Error in flux balance"
-
-        if ret_df:
-            # Sort and return the flux dataframe
-            flux_summary.sort_values('flux', ascending=False, inplace=True)
-            return flux_summary
-
-        producing = flux_summary[flux_summary.flux > 0].copy()
-        consuming = flux_summary[flux_summary.flux < 0].copy()
-
-        for df in [producing, consuming]:
-            df['percent'] = df.flux / df.flux.sum()
-            df.drop(df[df['percent'] < ignore_inactive].index, axis=0, inplace=True)
-
-            # df['%'] = df['%'].map('{:.1f}%'.format)
-
-        producing.sort_values('percent', ascending=False, inplace=True)
-        consuming.sort_values('percent', ascending=False, inplace=True)
-
-        if not fva: 
-
-            producing.flux = producing.flux.apply(
-                lambda x: '{:6.2g}'.format(x))
-            consuming.flux = consuming.flux.apply(
-                lambda x: '{:6.2g}'.format(x))
-
-            flux_len = 6
-
-        else:
-            from ..flux_analysis.variability import flux_variability_analysis
-            fva_results = pd.DataFrame(
-                flux_variability_analysis(self.model, self.reactions,
-                                          fraction_of_optimum=fva)).T
-            half_span = (fva_results.maximum - fva_results.minimum)/2
-            median = fva_results.minimum + half_span
-
-            producing.flux = producing.id.apply(
-                lambda x, median=median, err=half_span: 
-                u'{0:0.2f} \u00B1 {1:0.2f}'.format(median[x], err[x]))
-            consuming.flux = consuming.id.apply(
-                lambda x, median=median, err=half_span: 
-                u'{0:0.2f} \u00B1 {1:0.2f}'.format(median[x], err[x]))
-
-            flux_len = max(producing.flux.apply(len).max(), 
-                           consuming.flux.apply(len).max()) + 1
-
-
-        for df in [producing, consuming]:
-
-           df['reaction'] = df['reaction'].map(lambda x: x[:54])
-           df['id'] = df['id'].map(lambda x: x[:8])
-
-
-
-        head = "PRODUCING REACTIONS -- " + self.name[:55]
-        print head
-        print "-"*len(head)
-        print ("{0:^6} {1:>" + str(flux_len) + "} {2:>8} {3:^54}").format(
-                   '%', 'FLUX', 'RXN ID', 'REACTION')
-
-        for row in producing.iterrows():
-            print (u"{0.percent:6.1%} {0.flux:>" + str(flux_len) + 
-                   "} {0.id:>8} {0.reaction:>54}").format(row[1])
-
-
-        print
-        print "CONSUMING REACTIONS -- " + self.name[:55]
-        print "-"*len(head)
-        print ("{0:^6} {1:>" + str(flux_len) + "} {2:>8} {3:^54}").format(
-                   '%', 'FLUX', 'RXN ID', 'REACTION')
-
-        for row in consuming.iterrows():
-            print (u"{0.percent:6.1%} {0.flux:>" + str(flux_len) + 
-                   "} {0.id:>8} {0.reaction:>54}").format(row[1])
-
+        try:
+            from ..flux_analysis.summary import metabolite_summary
+            return metabolite_summary(self, **kwargs)
+        except ImportError:
+            warn('Summary methods require pandas')
 
     def __add__(self, other_metabolite):
         """ Create a metabolite pool by adding together two metabolites. Useful

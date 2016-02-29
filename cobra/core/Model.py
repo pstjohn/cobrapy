@@ -384,104 +384,25 @@ class Model(Object):
                 reaction.objective_coefficient = objectives[reaction_id] \
                     if hasattr(objectives, "items") else 1.
 
+    def summary(self, **kwargs):
+        """Print a summary of the input and output fluxes of the model. This
+        method requires the model to have been previously solved.
 
-    def summary(self, tol=1E-8, round=2, fva=None):
-        """Print a summary of the input and output fluxes of the model.
-        
-        tol: float
+        threshold: float
             tolerance for determining if a flux is zero (not printed)
-
-        round: int
-            number of digits after the decimal place to print
-
         fva: int or None
             Whether or not to calculate and report flux variability in the
             output summary
-
-
-        perhaps I should remove the pandas requirement? ive used it pretty much
-        everywhere else though, so once more shouldnt hurt.
+        round: int
+            number of digits after the decimal place to print
 
         """
 
-        obj_fluxes = pd.Series({'{:<15}'.format(r.id): '{:.3f}'.format(r.x)
-                                for r in self.objective.iterkeys()})
-
-        if not fva:
-
-            out_rxns = self.reactions.query(
-                lambda rxn: rxn.x > tol).query('system_boundary', 'boundary')
-            in_rxns = self.reactions.query(
-                lambda rxn: rxn.x < -tol).query('system_boundary', 'boundary')
-            
-            out_fluxes = pd.Series({r.reactants[0] : r.x for r in out_rxns})
-            in_fluxes = pd.Series({r.reactants[0] : r.x for r in in_rxns})
-
-            out_fluxes = pd.np.round(out_fluxes.sort_values(ascending=False), round)
-            in_fluxes  = pd.np.round(in_fluxes.sort_values(), round)
-
-            table = pd.np.array(
-                [((a if a else ''), (b if b else ''), (c if c else ''))
-                 for a, b, c in itertools.izip_longest(
-                         ['IN FLUXES'] + in_fluxes.to_string().split('\n'), 
-                         ['OUT FLUXES'] + out_fluxes.to_string().split('\n'),
-                         ['OBJECTIVES'] + obj_fluxes.to_string().split('\n'))])
-
-
-        else:
-            from ..flux_analysis.variability import flux_variability_analysis
-            fva_results = pd.DataFrame(
-                flux_variability_analysis(self, fraction_of_optimum=fva)).T
-
-            half_span = (fva_results.maximum - fva_results.minimum)/2
-            median = fva_results.minimum + half_span
-
-            out_rxns = self.reactions.query(
-                lambda rxn: median.loc[rxn.id] > tol
-            ).query('system_boundary', 'boundary')
-
-            in_rxns = self.reactions.query(
-                lambda rxn: median.loc[rxn.id] < -tol
-            ).query('system_boundary', 'boundary')
-
-            out_fluxes = pd.DataFrame(
-                {r.reactants[0] : {'x'   : median.loc[r.id], 
-                                   'err' : half_span.loc[r.id]}
-                 for r in out_rxns}).T
-
-            in_fluxes = pd.DataFrame(
-                {r.reactants[0] : {'x'   : median.loc[r.id], 
-                                   'err' : half_span.loc[r.id]}
-                 for r in in_rxns}).T
-
-            out_fluxes = pd.np.round(
-                out_fluxes.sort_values(by='x', ascending=False), round)
-            in_fluxes  = pd.np.round(
-                in_fluxes.sort_values(by='x'), round)
-
-            in_fluxes_s = in_fluxes.apply(
-                lambda x: u'{0:0.2f} \u00B1 {1:0.2f}'.format(x.x, x.err),
-                axis=1)
-            out_fluxes_s = out_fluxes.apply(
-                lambda x: u'{0:0.2f} \u00B1 {1:0.2f}'.format(x.x, x.err),
-                axis=1)
-            out_fluxes_s = out_fluxes.apply(lambda x: unicode(x.x) + u" \u00B1 "
-                                          + unicode(x.err), axis=1)
-            # out_fluxes_s = out_fluxes.apply(lambda x: unicode(x.x) + u" \u00B1 "
-            #                               + unicode(x.err), axis=1)
-
-
-            table = pd.np.array(
-                [((a if a else ''), (b if b else ''), (c if c else ''))
-                 for a, b, c in itertools.izip_longest(
-                         ['IN FLUXES'] + in_fluxes_s.to_string().split('\n'), 
-                         ['OUT FLUXES'] + out_fluxes_s.to_string().split('\n'),
-                         ['OBJECTIVES'] + obj_fluxes.to_string().split('\n'))])
-
-
-
-        print u'\n'.join([u"{a:<30}{b:<30}{c:<20}".format(a=a, b=b, c=c) for a,b,c in table])
-
+        try:
+            from ..flux_analysis.summary import model_summary
+            return model_summary(self, **kwargs)
+        except ImportError:
+            warn('Summary methods require pandas')
 
     def to_json(self, filename, pretty=False):
         """ Save the model to a json file.
@@ -489,83 +410,4 @@ class Model(Object):
         """
         from ..io import save_json_model
         save_json_model(self, filename, pretty=pretty)
-
-
-    def add_pathway(self, pathway):
-        """Add a cobra.Pathway to the model. Requires that all metabolites,
-        reactions are already present. Pathways will not change
-        any model behavior, but are merely a convienience feature for
-        understanding and grouping reactions 
-
-        pathway: a cobra.Pathway object
-
-        """
-
-        # Assert that pathway is not already in the model, and that all
-        # reactions and metabolites in the pathway are already in the model.
-        if self.pathways.has_id(pathway.id):
-            raise Exception("Pathway already in model: " +
-                            pathway.id)
-
-        reactions_not_in_model = [
-            i.id for i in pathway.reactions if not self.reactions.has_id(
-                i.id)]
-
-        if len(reactions_not_in_model) > 0:
-            raise Exception("Reactions not in the model: " +
-                            ", ".join(reactions_not_in_model))
-
-
-        metabolites_not_in_model = [
-            i.id for i in pathway.metabolites if not self.metabolites.has_id(
-                i.id)]
-
-        if len(metabolites_not_in_model) > 0:
-            raise Exception("Metabolites not in the model: " +
-                            ", ".join(metabolites_not_in_model))
-
-        pathway._model = self
-
-        # Superpathways will need to be added later, assuming that connections
-        # between pathways have been broken.
-        pathway.superpathways = DictList()
-
-        # Associate subpathways with those already in the model
-        model_subpathways = []
-        for subpathway in pathway.subpathways:
-            try:
-                model_subpathway = self.pathways.get_by_id(subpathway.id)
-            except KeyError:
-                self.add_pathway(subpathway)
-                model_subpathway = self.pathways.get_by_id(subpathway.id)
-
-            model_subpathway.superpathways.append(pathway)
-
-            model_subpathways += [model_subpathway]
-
-        pathway.subpathways = model_subpathways
-
-
-        # Associate reactions with those already in the model
-        model_reactions = {self.reactions.get_by_id(reaction.id) : stoich for
-                           reaction, stoich in pathway.reactions.iteritems()}
-        pathway.reactions = model_reactions
-
-        # Associate metabolites with those already in the model
-        for metabolite in list(pathway._metabolites.keys()):
-            stoichiometry = pathway._metabolites.pop(metabolite)
-            model_metabolite = self.metabolites.get_by_id(
-                metabolite.id)
-            pathway._metabolites[model_metabolite] = stoichiometry
-
-        self.pathways.append(pathway)
-
-        
-    def add_pathways(self, pathways):
-        """Add multiple pathways to the model.
-
-        """
-        for pathway in pathways:
-            self.add_pathway(pathway)
-
 

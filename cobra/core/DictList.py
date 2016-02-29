@@ -1,6 +1,6 @@
 import re
-from six import string_types, iteritems, PY3
 from itertools import islice
+from six import string_types, iteritems, PY3
 
 try:
     from numpy import bool_
