@@ -65,6 +65,48 @@ class TestCobraFluxAnalysis(TestCase):
             self.assertAlmostEqual(model.solution.f, 0.8739, places=3)
             self.assertAlmostEqual(sum(abs_x), 518.4221, places=3)
 
+            # Test desired_objective_value
+            desired_objective = 0.8
+            optimize_minimal_flux(model, solver=solver,
+                                  desired_objective_value=desired_objective)
+            abs_x = [abs(i) for i in model.solution.x]
+            self.assertEqual(model.solution.status, "optimal")
+            self.assertAlmostEqual(model.solution.f, desired_objective,
+                                   places=3)
+            self.assertAlmostEqual(sum(abs_x), 476.1594, places=3)
+
+            # Test fraction_of_optimum
+            optimize_minimal_flux(model, solver=solver,
+                                  fraction_of_optimum=0.95)
+            abs_x = [abs(i) for i in model.solution.x]
+            self.assertEqual(model.solution.status, "optimal")
+            self.assertAlmostEqual(model.solution.f, 0.95*0.8739, places=3)
+            self.assertAlmostEqual(sum(abs_x), 493.4400, places=3)
+
+            # Make sure the model works for non-unity objective values
+            model.reactions.Biomass_Ecoli_core.objective_coefficient = 2
+            optimize_minimal_flux(model, solver=solver)
+            self.assertAlmostEqual(model.solution.f, 2*0.8739, places=3)
+            model.reactions.Biomass_Ecoli_core.objective_coefficient = 1
+
+            # Test some erroneous inputs -- multiple objectives
+            model.reactions.ATPM.objective_coefficient = 1
+            with self.assertRaises(ValueError):
+                optimize_minimal_flux(model, solver=solver)
+            model.reactions.ATPM.objective_coefficient = 0
+
+            # Minimization of objective
+            with self.assertRaises(ValueError):
+                optimize_minimal_flux(model, solver=solver,
+                                      objective_sense='minimize')
+
+            # Infeasible solution
+            atpm = float(model.reactions.ATPM.lower_bound)
+            model.reactions.ATPM.lower_bound = 500
+            with self.assertRaises(ValueError):
+                optimize_minimal_flux(model, solver=solver)
+            model.reactions.ATPM.lower_bound = atpm
+
     def test_single_gene_deletion(self):
         cobra_model = create_test_model("textbook")
         # expected knockouts for textbook model
@@ -243,11 +285,16 @@ class TestCobraFluxAnalysis(TestCase):
         U.add_reaction(r)
         r.build_reaction_from_string("a --> d", verbose=False)
 
+        # GrowMatch
         result = gapfilling.growMatch(m, U)[0]
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0].id, "a2b")
+        # SMILEY
+        result = gapfilling.SMILEY(m, "b", U)[0]
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0].id, "a2b")
 
-        # 2 rounds with exchange reactions
+        # 2 rounds of GrowMatch with exchange reactions
         result = gapfilling.growMatch(m, None, ex_rxns=True, iterations=2)
         self.assertEqual(len(result), 2)
         self.assertEqual(len(result[0]), 1)
