@@ -546,7 +546,7 @@ class Reaction(Object):
     def reaction(self, value):
         return self.build_reaction_from_string(value)
 
-    def build_reaction_string(self):
+    def build_reaction_string(self, use_metabolite_names=False):
         """Generate a human readable reaction string"""
         def format(number):
             return "" if number == 1 else str(number).rstrip(".") + " "
