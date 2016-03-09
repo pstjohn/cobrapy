@@ -53,6 +53,10 @@ def flux_map(cobra_model,
     hide_unused:
         whether or not to show metabolites and reactions with zero flux.
 
+    hide_unused_cofactors:
+        similar to hide_unused, but only hide cofactor nodes for reactions with
+        0 flux.
+
     figsize:
         size, in pixels, of the generated SVG window. Defaults to 1024x768.
 
@@ -104,6 +108,17 @@ def flux_map(cobra_model,
 
     for metabolite in excluded_metabolites:
         metabolite.notes['map_info'] = {'hidden' : True}
+
+    def is_hidden(obj):
+        try: return bool(obj.notes['map_info']['hidden'])
+        except KeyError: return False
+
+    # Hide reactions if all of their products or reactants are hidden
+    for reaction in cobra_model.reactions:
+        if (all([is_hidden(met) for met in reaction.reactants]) or 
+            all([is_hidden(met) for met in reaction.products])):
+
+            reaction.notes['map_info']['hidden'] = True
 
     # Add diplay names to the cobra metabolites accoring to the
     # display_name_format function
@@ -178,7 +193,8 @@ def create_model_json(cobra_model):
 
 
 def render_model(cobra_model, background_template=None, custom_css=None,
-                 figure_id=None, hide_unused=None, figsize=None, label=None,
+                 figure_id=None, hide_unused=None, hide_unused_cofactors=None,
+                 figsize=None, label=None,
                  fontsize=None):
     """ Render a cobra.Model object in the current window 
     
@@ -198,6 +214,10 @@ def render_model(cobra_model, background_template=None, custom_css=None,
 
     hide_unused:
         whether or not to show metabolites and reactions with zero flux.
+
+    hide_unused_cofactors:
+        similar to hide_unused, but only hide cofactor nodes for reactions with
+        0 flux.
 
     figsize:
         size, in pixels, of the generated SVG window. Defaults to 1024x768.
@@ -225,6 +245,10 @@ def render_model(cobra_model, background_template=None, custom_css=None,
         hide_unused = "false"
     else: hide_unused = "true"
 
+    if not hide_unused_cofactors:
+        hide_unused_cofactors = "false"
+    else: hide_unused_cofactors = "true"
+
     # Handle custom CSS
     if not custom_css: 
         custom_css = ''
@@ -251,8 +275,10 @@ def render_model(cobra_model, background_template=None, custom_css=None,
 
     js = template_js.render(figure_id=figure_id, modeljson=modeljson,
                             no_background=no_background,
-                            hide_unused=hide_unused, figwidth=figsize[0],
-                            figheight=figsize[1], fontsize=fontsize)
+                            hide_unused=hide_unused,
+                            hide_unused_cofactors=hide_unused_cofactors,
+                            figwidth=figsize[0], figheight=figsize[1],
+                            fontsize=fontsize)
 
     html = template_html.render(figure_id=figure_id,
                                 background_svg=background_svg,

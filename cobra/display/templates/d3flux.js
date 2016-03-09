@@ -21,7 +21,7 @@ require(["d3", "math", "FileSaver", "d3tip"], function (d3, math, FileSaver, d3t
     var width = {{ figwidth }},
     height = {{ figheight }};
 
-    var color = d3.scale.category20();
+    // var color = d3.scale.category10();
 
     // Reaction color allows different reaction groups to be colored
     // accordingly. Grouping is mainly handled by color_redox_reactions. First
@@ -109,7 +109,6 @@ require(["d3", "math", "FileSaver", "d3tip"], function (d3, math, FileSaver, d3t
 
     function average_dist(rxn, rstoich, nodes) {
       // Calculate the average distance to the reaction nodes, which is used to
-      // calculate the control point of the reaction path.
       var dist = []
       for (var n in rstoich) {
         var this_dist = math.sqrt(math.square(rxn.x - nodes[n].x) 
@@ -184,6 +183,15 @@ require(["d3", "math", "FileSaver", "d3tip"], function (d3, math, FileSaver, d3t
     reactions.forEach(function(reaction) {
       if ('notes' in reaction) {
         if ('map_info' in reaction.notes) {
+          if ('hidden' in reaction.notes.map_info) {
+            if (reaction.notes.map_info.hidden) {
+              return;
+            }
+          }
+          if ({{ hide_unused_cofactors }} &&
+              (Math.abs(reaction.notes.map_info.flux) < 1E-6)) {
+            return;
+          } 
           if ('cofactors' in reaction.notes.map_info) {
             for (var cofactor in reaction.notes.map_info.cofactors) {
 
@@ -200,6 +208,12 @@ require(["d3", "math", "FileSaver", "d3tip"], function (d3, math, FileSaver, d3t
                 },
                 'cofactor' : reaction.id
               };
+
+              // Inheret color from original metabolite
+              if ('color' in orig_metabolite.notes.map_info) {
+                cofactor_node.notes.map_info.color = 
+                  orig_metabolite.notes.map_info.color;
+              }
 
               // Get the cofactor display name from the original 
               // metabolite node
@@ -226,10 +240,10 @@ require(["d3", "math", "FileSaver", "d3tip"], function (d3, math, FileSaver, d3t
 
     // Create a dictionary-like structure to allow us to look up nodes by their
     // id, rather than numerical index
-    for (var i = 0, len = nodes.length; i < len; i++) {
-      var node = nodes[i]
-      node_lookup[node.id] = i;
-    }
+    // for (var i = 0, len = nodes.length; i < len; i++) {
+    //   var node = nodes[i]
+    //   node_lookup[node.id] = i;
+    // }
 
     var fluxes = [];
     reactions.forEach(function(reaction) {
@@ -281,8 +295,9 @@ require(["d3", "math", "FileSaver", "d3tip"], function (d3, math, FileSaver, d3t
         r_node["notes"] = reaction.notes;
       }
 
+      // Don't add links on the boundary
       if (r_length == 0 || p_length == 0) {
-        return; // Don't add links on the boundary
+        return; 
       }
 
       // Add reaction to the nodes list, get the current length of the nodes
@@ -431,12 +446,23 @@ require(["d3", "math", "FileSaver", "d3tip"], function (d3, math, FileSaver, d3t
       .attr("r", 5)
       .style("fill", function(d) { 
         if (d.type != 'rxn') {
-          return color(d.group);
+          if ('color' in d.notes.map_info) {
+            return d.notes.map_info.color;
+          } else {
+            return '#1f77b4';
+          }
         } else return "";});
 
     // add the text 
     node.append("text")
-      .attr("class", "nodelabel")
+      .attr("class", function(d) {
+        if ('cofactor' in d) {
+          return "cofactor nodelabel";
+        } else {
+          return "nodelabel";
+        }
+      })
+      .attr("id", function(d) {return d.id})
       .attr("dx", "12")
       .attr("dy", ".35em")
       .attr("font-size", function (d) { 
@@ -619,7 +645,7 @@ require(["d3", "math", "FileSaver", "d3tip"], function (d3, math, FileSaver, d3t
 
         var json = JSON.stringify(model);
         var blob = new Blob([json], {type: "application/json"});
-        saveAs(blob, "model.json");
+        saveAs(blob, model.id + ".json");
       });
   }
 

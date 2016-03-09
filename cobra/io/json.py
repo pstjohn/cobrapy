@@ -108,24 +108,6 @@ def _from_dict(obj):
                 setattr(new_reaction, k, _fix_type(v))
         new_reactions.append(new_reaction)
     model.add_reactions(new_reactions)
-    # Add pathways (if present)
-    if obj.has_key('pathways'):
-        for pathway in obj['pathways']:
-            new_pathway = Pathway()
-            for k, v in iteritems(pathway):
-                if k == 'reactions':
-                   new_pathway.add_reactions(
-                        {model.reactions.get_by_id(str(rxn)): coeff
-                         for rxn, coeff in iteritems(v)}) 
-                elif k == 'subpathways':
-                    # Create connections between pathways
-                    for pwy in v:
-                        sub_pathway = model.pathways.get_by_id(str(pwy))
-                        new_pathway.subpathways.append(sub_pathway)
-                else:
-                    setattr(new_pathway, k, _fix_type(v))
-            model.add_pathway(new_pathway)
-
 
     for k, v in iteritems(obj):
         if k in {'id', 'name', 'notes', 'compartments', 'annotation'}:
