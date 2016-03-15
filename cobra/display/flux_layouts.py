@@ -118,7 +118,10 @@ def flux_map(cobra_model,
         if (all([is_hidden(met) for met in reaction.reactants]) or 
             all([is_hidden(met) for met in reaction.products])):
 
-            reaction.notes['map_info']['hidden'] = True
+            try:
+                reaction.notes['map_info']['hidden'] = True
+            except KeyError:
+                reaction.notes['map_info'] = {'hidden': True}
 
     # Add diplay names to the cobra metabolites accoring to the
     # display_name_format function
