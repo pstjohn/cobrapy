@@ -107,27 +107,37 @@ class TestCobraFluxAnalysis(TestCase):
                 optimize_minimal_flux(model, solver=solver)
             model.reactions.ATPM.lower_bound = atpm
 
-    def test_single_gene_deletion(self):
+    def test_single_gene_deletion_fba(self):
         cobra_model = create_test_model("textbook")
         # expected knockouts for textbook model
-        growth_dict = {"fba": {"b0008": 0.87, "b0114": 0.80, "b0116": 0.78,
-                               "b2276": 0.21, "b1779": 0.00},
-                       "moma": {"b0008": 0.87, "b0114": 0.71, "b0116": 0.56,
-                                "b2276": 0.11, "b1779": 0.00},
-                       }
+        growth_dict = {"b0008": 0.87, "b0114": 0.80, "b0116": 0.78,
+                       "b2276": 0.21, "b1779": 0.00}
 
-        # MOMA requires cplex or gurobi
+        rates, statuses = single_gene_deletion(cobra_model,
+                                               gene_list=growth_dict.keys(),
+                                               method="fba")
+        for gene, expected_value in iteritems(growth_dict):
+            self.assertEqual(statuses[gene], 'optimal')
+            self.assertAlmostEqual(rates[gene], expected_value, places=2)
+
+    def test_single_gene_deletion_moma(self):
+        # MOMA requires a QP solver
         try:
             get_solver_name(qp=True)
         except:
-            growth_dict.pop('moma')
-        for method, expected in growth_dict.items():
-            rates, statuses = single_gene_deletion(cobra_model,
-                                                   gene_list=expected.keys(),
-                                                   method=method)
-            for gene, expected_value in iteritems(expected):
-                self.assertEqual(statuses[gene], 'optimal')
-                self.assertAlmostEqual(rates[gene], expected_value, places=2)
+            self.skipTest("no qp support")
+
+        cobra_model = create_test_model("textbook")
+        # expected knockouts for textbook model
+        growth_dict = {"b0008": 0.87, "b0114": 0.71, "b0116": 0.56,
+                       "b2276": 0.11, "b1779": 0.00}
+
+        rates, statuses = single_gene_deletion(cobra_model,
+                                               gene_list=growth_dict.keys(),
+                                               method="moma")
+        for gene, expected_value in iteritems(growth_dict):
+            self.assertEqual(statuses[gene], 'optimal')
+            self.assertAlmostEqual(rates[gene], expected_value, places=2)
 
     def test_single_reaction_deletion(self):
         cobra_model = create_test_model("textbook")
@@ -345,9 +355,10 @@ class TestCobraFluxAnalysis(TestCase):
             u'akg_e        0.36 \u00B1 0.36',
             u'glu__L_e     0.32 \u00B1 0.32'
         ]
-        with captured_output() as (out, err):
-            model.summary(fva=0.95)
-        self.check_entries(out, desired_entries)
+        for solver in solver_dict:
+            with captured_output() as (out, err):
+                model.summary(fva=0.95, solver=solver)
+            self.check_entries(out, desired_entries)
 
         # test non-fva version (these should be fixed for textbook model
         desired_entries = [
@@ -369,7 +380,6 @@ class TestCobraFluxAnalysis(TestCase):
             self.assertIn(i, s)
 
         # Test metabolite summary methods
-
         desired_entries = [
             'PRODUCING REACTIONS -- Ubiquinone-8',
             '-----------------------------------',
@@ -381,12 +391,31 @@ class TestCobraFluxAnalysis(TestCase):
             '-----------------------------------',
             '88.4%    -39   NADH16'
             '4.0 h_c + nadh_c + q8_c --> 3.0 h_e + nad_c + q8h2_c',
-            '11.6%   -5.1    SUCDi                       '
+            '11.6%   -5.1    SUCDi'
             'q8_c + succ_c --> fum_c + q8h2_c',
         ]
         with captured_output() as (out, err):
             model.metabolites.q8_c.summary()
         self.check_entries(out, desired_entries)
+
+        desired_entries = [
+            u'PRODUCING REACTIONS -- D-Fructose 1,6-bisphosphate',
+            u'--------------------------------------------------',
+            u'  %            FLUX   RXN ID'
+            u'REACTION',
+            u'100.0%  7.71 \u00B1 1.54      PFK'
+            u'atp_c + f6p_c --> adp_c + fdp_c + h_c',
+            u'CONSUMING REACTIONS -- D-Fructose 1,6-bisphosphate',
+            u'--------------------------------------------------',
+            u'  %            FLUX   RXN ID'
+            u'REACTION',
+            u'100.0%  7.54 \u00B1 1.37      FBA'
+            u'fdp_c <=> dhap_c + g3p_c',
+        ]
+        for solver in solver_dict:
+            with captured_output() as (out, err):
+                model.metabolites.fdp_c.summary(fva=0.99, solver=solver)
+            self.check_entries(out, desired_entries)
 
 
 # make a test suite to run all of the tests

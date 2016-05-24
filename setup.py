@@ -135,8 +135,8 @@ except Exception as e:
 extras = {
     'matlab': ["pymatbridge"],
     'sbml': ["python-libsbml", "lxml"],
-    'array': ["numpy>=1.6", "scipy>=11.0"],
-    'display': ["matplotlib", "palettable", "pandas"]
+    'array': ["numpy>=1.6", "scipy>=0.11.0"],
+    'display': ["matplotlib", "palettable", "pandas>=0.17.0"]
 }
 
 all_extras = {'Cython>=0.21'}

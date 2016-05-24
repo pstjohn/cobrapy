@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 
 
-from .moma import generate_model_matricies
+from .old_moma import generate_model_matricies
 
 
 def calculate_constraint_duals(cobra_model, tol=1E-6, solver='GLPK'):

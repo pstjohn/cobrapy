@@ -28,6 +28,5 @@ except:
     cxvpy = None
 
 if cvxpy:
-    from .moma import MOMAModel
     from .constraint_duals import calculate_constraint_duals
 del cvxpy
