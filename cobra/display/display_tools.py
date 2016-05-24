@@ -1,4 +1,5 @@
 import pandas as pd
+from functools import reduce
 #TODO: write docstrings
 
 def metabolite_summary(met):
@@ -61,10 +62,10 @@ def color_redox_rxns(cobra_model, reset_groups=True, color_knockouts=True,
 
     # Assign new group info based on redox balance
     oxidizing, reducing = redox_summary(cobra_model, **kwargs)
-    for rxn, flux in oxidizing.iteritems():
+    for rxn, flux in oxidizing.items():
         cobra_model.reactions.get_by_id(
             rxn).notes['map_info']['group'] = starting_group
-    for rxn, flux in reducing.iteritems():
+    for rxn, flux in reducing.items():
         cobra_model.reactions.get_by_id(
             rxn).notes['map_info']['group'] = starting_group + 1
 

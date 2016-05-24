@@ -192,7 +192,7 @@ def read_bitvector_file(file_name, rnames):
 
     return pd.DataFrame(
         outlist, columns=rnames, dtype=bool,
-        index=('CS{}'.format(i) for i in xrange(1, len(outlist) + 1)))
+        index=('CS{}'.format(i) for i in range(1, len(outlist) + 1)))
 
             
 

@@ -59,10 +59,10 @@ def check_mfa_results(model, cutsets, targets):
 
     target_dict = {key : lambda model, key=key: model.reactions.get_by_id(key).x 
                    for key in targets}
-    target_dict.update({'growth' : lambda model: model.objective.keys()[0].x})
+    target_dict.update({'growth' : lambda model: list(model.objective.keys())[0].x})
 
     def find_growth_rates():
-        for cutset, knockouts in rxn_kos.iteritems():
+        for cutset, knockouts in rxn_kos.items():
             ko_model = model.copy()
             for r in knockouts:
                 ko_model.reactions.get_by_id(r).knock_out()
@@ -71,11 +71,11 @@ def check_mfa_results(model, cutsets, targets):
                 assert np.isfinite(s.f)
             except Exception:
                 yield (cutset, {key : np.NaN for key, val in
-                                target_dict.iteritems()})
+                                target_dict.items()})
                 continue
 
             yield (cutset, {key : val(ko_model) for key, val in
-                            target_dict.iteritems()})
+                            target_dict.items()})
 
     out = pd.DataFrame(rxn_kos, columns=['Knockouts']).join(
         pd.DataFrame(dict(find_growth_rates())).T)
@@ -95,13 +95,13 @@ def format_reaction(cobra_model, efm, tol=1E-8):
     
     efm_rxn = Reaction(efm.name)
         
-    for rxn_id, flux in efm[efm != 0].iteritems():
+    for rxn_id, flux in efm[efm != 0].items():
         model_rxn = cobra_model.reactions.get_by_id(rxn_id)
         efm_rxn.add_metabolites((model_rxn * flux).metabolites)
             
     efm_rxn._metabolites = {
         metabolite : stoich for metabolite, stoich in
-        efm_rxn.metabolites.iteritems() if abs(stoich) >= tol}
+        efm_rxn.metabolites.items() if abs(stoich) >= tol}
     
     return efm_rxn
 
@@ -147,7 +147,7 @@ def get_maximum_reactions(first, data, cobra_model, second=None, exclude=None, t
                           (efmlist[second_str].min() * (1 - tol))]
     
     for id_, efm in efmlist.iterrows():
-        print format_reaction(cobra_model, efm).reaction
+        print(format_reaction(cobra_model, efm).reaction)
 
 
 

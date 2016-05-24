@@ -67,7 +67,7 @@ def read_double_out(cobra_model, out_file):
         out_arr = pd.DataFrame(
             out_arr, index=(r.id for r in cobra_model.reactions), 
             columns=('EM{}'.format(i) for i in 
-                     xrange(1, out_arr.shape[1] + 1)))
+                     range(1, out_arr.shape[1] + 1)))
 
     return out_arr
 
@@ -314,7 +314,7 @@ def calculate_elementary_modes(cobra_model, opts=None, verbose=True):
 
         # Create a list of arguments to pass to the python subprocess module
         def opt_gen():
-            for opt, val in default_opts.iteritems():
+            for opt, val in default_opts.items():
                 yield '-' + opt
                 yield str(val)
 
@@ -378,7 +378,7 @@ if __name__ == "__main__":
 
     out = calculate_elementary_modes(model, verbose=False)
 
-    print out
+    print(out)
 
 
 

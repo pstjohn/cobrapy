@@ -50,7 +50,7 @@ def opt_gen(opts_dict):
     Call as list(opt_gen(opts_dict)) to generate the list.
 
     """
-    for opt, val in opts_dict.iteritems():
+    for opt, val in opts_dict.items():
         yield '-' + opt
         if val is not None: yield str(val)
 
