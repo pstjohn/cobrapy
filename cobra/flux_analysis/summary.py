@@ -132,8 +132,11 @@ def model_summary(model, threshold=1E-8, fva=None, digits=2, **solver_args):
         out_fluxes = pd.Series({r.reactants[0]: r.x for r in out_rxns})
         in_fluxes = pd.Series({r.reactants[0]: r.x for r in in_rxns})
 
-        out_fluxes = out_fluxes.sort_values(ascending=False).round(decimals)
-        in_fluxes = in_fluxes.sort_values().round(decimals)
+        # sort and round
+        out_fluxes.sort_values(ascending=False, inplace=True)
+        out_fluxes = out_fluxes.round(digits)
+        in_fluxes.sort_values(inplace=True)
+        in_fluxes = in_fluxes.round(digits)
 
         table = pd.np.array(
             [((a if a else ''), (b if b else ''), (c if c else ''))

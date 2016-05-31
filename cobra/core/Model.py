@@ -278,10 +278,10 @@ class Model(Object):
 
         """
         if minimize_absolute_flux:
-            from ..flux_analysis import optimize_maf
-            solution = optimize_maf(self, float(minimize_absolute_flux),
-                                        **kwargs)
-        else: 
+            from ..flux_analysis import optimize_minimal_flux
+            solution = optimize_minimal_flux(
+                self, float(minimize_absolute_flux), **kwargs)
+        else:
             solution = optimize(self, objective_sense=objective_sense, **kwargs)
         self.solution = solution
         return solution
