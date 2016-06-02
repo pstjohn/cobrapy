@@ -69,6 +69,25 @@ def color_redox_rxns(cobra_model, reset_groups=True, color_knockouts=True,
         cobra_model.reactions.get_by_id(
             rxn).notes['map_info']['group'] = starting_group + 1
 
-
     return cobra_model
 
+                                            
+def update_cofactors(cobra_model, cofactor_list):
+    """ Given a model and list of cofactors to display, update the map_info
+    field of each reaction containing the given cofactors. Updates the model
+    inplace.
+    
+    cobra_model : a cobra.Model object
+    cofactor_list : a list of strings indicating the desired cofactor IDs to show.
+
+    """
+
+    def rxn_cofactor_update(rxn, cofactor):
+        try:
+            rxn.notes['map_info']['cofactors'].update({cofactor: {}})
+        except KeyError:
+            rxn.notes['map_info']['cofactors'] = {cofactor: {}}
+
+    for met_id in cofactor_list:
+        this_met = cobra_model.metabolites.get_by_id(met_id)
+        for rxn in this_met.reactions: rxn_cofactor_update(rxn, met_id)

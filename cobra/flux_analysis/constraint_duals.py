@@ -51,7 +51,7 @@ def calculate_constraint_duals(cobra_model, tol=1E-6, solver='GLPK'):
     objective = cvx.Maximize(objective_coeffs * v - otol*cvx.sum_entries(cvx.abs(v)))
 
     cvx_prob = cvx.Problem(objective, constraints)
-    cvx_prob.solve(solver=solver)
+    cvx_prob.solve(solver=solver, verbose=False)
 
     dual_vals = pd.DataFrame(
         np.array([constraints[1].dual_value.tolist(),
