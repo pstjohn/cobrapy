@@ -113,9 +113,16 @@ def flux_map(cobra_model,
         try: return bool(obj.notes['map_info']['hidden'])
         except KeyError: return False
 
-    # Hide reactions if all of their products or reactants are hidden
     for reaction in cobra_model.reactions:
-        if (all([is_hidden(met) for met in reaction.reactants]) or 
+        
+        try:
+            reaction.notes['map_info']['reversibility'] = reaction.reversibility
+        except KeyError:
+            reaction.notes['map_info'] = {
+                'reversibility': reaction.reversibility}
+
+        # Hide reactions if all of their products or reactants are hidden
+        if (all([is_hidden(met) for met in reaction.reactants]) or
             all([is_hidden(met) for met in reaction.products])):
 
             try:

@@ -1,6 +1,6 @@
 import pandas as pd
 from functools import reduce
-#TODO: write docstrings
+# TODO: write docstrings
 
 def metabolite_summary(met):
     return pd.Series({r.id : (r.x * r.metabolites[met]) 
@@ -83,7 +83,12 @@ def update_cofactors(cobra_model, cofactor_list):
     """
 
     def rxn_cofactor_update(rxn, cofactor):
+    
+        if 'map_info' not in rxn.notes:
+            rxn.notes['map_info'] = {}
+
         try:
+            if cofactor in rxn.notes['map_info']['cofactors']: return
             rxn.notes['map_info']['cofactors'].update({cofactor: {}})
         except KeyError:
             rxn.notes['map_info']['cofactors'] = {cofactor: {}}

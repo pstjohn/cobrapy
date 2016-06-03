@@ -258,7 +258,7 @@ require(["d3", "math", "FileSaver", "d3tip"], function (d3, math, FileSaver, d3t
               return;
             }
             fluxes.push(Math.abs(reaction.notes.map_info.flux));
-            if (reaction.notes.map_info.flux < 0) {
+            if (reaction.notes.map_info.flux < -1E-10) {
               // If the reaction is flowing in reverse, switch products and
               // reactants.
               for (var item in reaction.metabolites) {
@@ -397,12 +397,28 @@ require(["d3", "math", "FileSaver", "d3tip"], function (d3, math, FileSaver, d3t
       .attr("refX", 12)
       .attr("refY", 5)
       .attr("markerUnits", "userSpaceOnUse")
-      .attr("markerWidth", "8pt")
-      .attr("markerHeight", "8pt")
+      .attr("markerWidth", "7pt")
+      .attr("markerHeight", "7pt")
       .attr("orient", "auto")
       .attr("class", "endmarker")
       .append("path")
       .attr("d", "M 0 0 L 10 5 L 0 10 z");
+
+    svg.append("defs").selectAll("marker")
+      .data(reactions)
+      .enter()
+      .append("marker")
+      .attr("id", function (d) { return d.id + "_rev"; })
+      .attr("viewBox", "0 0 10 10")
+      .attr("refX", -2)
+      .attr("refY", 5)
+      .attr("markerUnits", "userSpaceOnUse")
+      .attr("markerWidth", "7pt")
+      .attr("markerHeight", "7pt")
+      .attr("orient", "auto")
+      .attr("class", "startmarker")
+      .append("path")
+      .attr("d", "M 10,10 0,5 10,0 Z");
 
     var link = svg.append('g').selectAll(".link")
       .data(bilinks)
@@ -411,7 +427,14 @@ require(["d3", "math", "FileSaver", "d3tip"], function (d3, math, FileSaver, d3t
       .attr("class", function (d) { return "link " + d.rxn.id; })
       .attr("marker-end", function(d) {
         return "url(#" + d.rxn.id + ")"; 
+      })
+      .attr("marker-start", function(d) {
+      	if (Math.abs(d.rxn.notes.map_info.flux) < 1E-8 &&
+	    d.rxn.notes.map_info.reversibility) {
+		return "url(#" + d.rxn.id + "_rev)";
+	}
       });
+
 
 
     var node_drag = force.drag()
