@@ -2,10 +2,6 @@ from warnings import warn
 import re
 from copy import deepcopy
 
-import pandas as pd
-
-from six import iteritems
-
 from six import iteritems
 
 from .Species import Species
@@ -223,12 +219,34 @@ class Metabolite(Species):
     
         return pool
         
-
+    @property
+    def degree_of_reduction(self):
+        """Calculate the degree of reduction of the metabolite, weighted by the
+        number of carbons in the compound
         
+        """
+
+        dor = -self.charge if self.charge is not None else 0
+
+        for element in set(self.elements.keys()).intersection(
+                degree_of_reduction.keys()):
+
+            dor += self.elements[element] * degree_of_reduction[element]
+
+        return dor
 
 
 
-
+# From *The metabolic pathway engineering handbook: fundamentals*, p. 11-4
+degree_of_reduction = {
+    'H': +1,
+    'O': -2,
+    'C': +4,
+    'S': +6,
+    'P': +5,
+    'Fe': 3,
+    'N': 0,
+}
 
 
 
