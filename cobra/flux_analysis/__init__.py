@@ -24,7 +24,7 @@ del numpy
 try:
     import cvxpy
 except:
-    cxvpy = None
+    cvxpy = None
 
 if cvxpy:
     from .constraint_duals import calculate_constraint_duals
