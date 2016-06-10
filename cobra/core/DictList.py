@@ -102,12 +102,16 @@ class DictList(list):
                     pass
         else:
             for i in self:
-                try:
+                if not exceptions:
                     if search_function(select_attribute(i)): yield i
-                except exceptions:
-                    # Allow certain function failures, i.e. a missing KeyError,
-                    # not to fail the search
-                    pass
+
+                else:
+                    try:
+                        if search_function(select_attribute(i)): yield i
+                    except exceptions:
+                        # Allow certain function failures, i.e. a missing KeyError,
+                        # not to fail the search
+                        pass
 
     def query(self, search_function, attribute=None, ignorecase=True,
                exceptions=None):
