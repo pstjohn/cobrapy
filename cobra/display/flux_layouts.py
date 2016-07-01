@@ -281,7 +281,7 @@ def render_model(cobra_model, background_template=None, custom_css=None,
 
     # Render the jinja templates with the given variables
     css = template_css.render(figure_id=figure_id, figwidth=figsize[0],
-                            figheight=figsize[1])
+                              figheight=figsize[1])
 
     js = template_js.render(figure_id=figure_id, modeljson=modeljson,
                             no_background=no_background,
@@ -302,6 +302,3 @@ def render_model(cobra_model, background_template=None, custom_css=None,
 render_model._fignum = 0
 
 
-common_cofactors = cofactors = ['coa', 'nadh', 'nad', 'nadph', 'nadp', 'atp',
-                                'adp', 'amp', 'q8', 'q8h2', 'pi', 'co2', 'h2o',
-                                'h', 'o2', 'h2', 'nh4']

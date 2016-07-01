@@ -560,7 +560,7 @@ require(["d3", "math", "FileSaver", "d3tip"], function (d3, math, FileSaver, d3t
     // flux_scale = d3.scale.pow().exponent(1/2)
     flux_scale = d3.scale.linear()
       .domain([d3.min(fluxes), d3.max(fluxes)])
-      .range([1.5, 8]);
+      .range([1.5, 6]);
 
     // metabolite_scale = d3.scale.pow().exponent(1/2)
     metabolite_scale = d3.scale.linear()
@@ -569,7 +569,7 @@ require(["d3", "math", "FileSaver", "d3tip"], function (d3, math, FileSaver, d3t
 
     arrowhead_scale = d3.scale.linear()
       .domain([1.5, 6])
-      .range([7, 14]);
+      .range([6, 12]);
 
     function get_flux_width (rxn) {
       try {

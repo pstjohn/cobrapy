@@ -19,12 +19,12 @@ mcs_berge_cmd = mcs_lib_dir + '/mhsCalculator_berge'
 
 # We're going to need pandas here, no real way around it.
 import pandas as pd
-import numpy as np
 
 from .utils import run_process, make_temp_directory, opt_gen
 
 def calculate_minimum_cut_sets(good, bad, keep=None, essential_reactions=None,
-                               opts=None, verbose=True):
+                               opts=None, verbose=False, overexpression=None,
+                               return_format=None):
     """ A function to compute minimal cut sets from the input elementary flux
     modes. Will find sets of reaction knockouts which remove all of the flux
     modes in bad while keeping the flux modes in good.
@@ -49,6 +49,18 @@ def calculate_minimum_cut_sets(good, bad, keep=None, essential_reactions=None,
     essential_reactions: list of cobra.Reactions or reaction.ids
         Reactions which should be excluded from the minimal cut sets (i.e.,
         considered essential for cell growth).
+
+    return_format: 'name' or None
+        How to return the minimum cut sets. If 'name', returns a pandas series
+        containing the names of the desired reaction knockouts. Otherwise,
+        returns a DataFrame containing boolean true/false values for each
+        cutset.
+
+    overexpression: list of cobra.Reactions or reaction.ids
+        An experimental feature to determine add overexpression targets to the
+        constrained cut set calculation. Flags reactions as an overexpression
+        target if they are active in the desired modes and not active in the
+        target modes.
 
     opts: dict or None
         Options for the mhsCalculator script. These likely shouldn't be
@@ -85,9 +97,17 @@ def calculate_minimum_cut_sets(good, bad, keep=None, essential_reactions=None,
     """
 
     # Process Input Arguments
-    efms = pd.concat((good, bad))
+    efms = pd.concat((good, bad)).astype(bool)
     if not keep: keep = len(good)
     if opts is None: opts = {}
+
+    # Handle over-expression targets
+    if overexpression:
+        try:
+            efms = efms.join(~efms[overexpression], rsuffix='_UP')
+        except KeyError:
+            efms = efms.join(~efms[[r.id for r in overexpression]],
+                             rsuffix='_UP')
     
     # Set some options based on input arguments
     opts['n'] = len(good)
@@ -113,9 +133,12 @@ def calculate_minimum_cut_sets(good, bad, keep=None, essential_reactions=None,
         # Parse the bitvector output
         cutsets = read_bitvector_file(temp_dir + '/cutsets.txt', efms.columns)
 
-    return cutsets
+    if return_format == 'name':
+        sorted_cutsets = cutsets.iloc[cutsets.sum(1).argsort()]
+        rxn_kos = sorted_cutsets.T.apply(lambda x: list(x.loc[x].index))
+        return rxn_kos
 
-
+    else: return cutsets
 
         
     
@@ -124,6 +147,9 @@ def write_input_files(efms, temp_dir, essential_reactions):
     mhsCalculator
     
     """
+    if (efms.dtypes == bool).any():
+        efms = efms.astype(int)
+
     # Write EFMs to a text file
     efms.to_csv(temp_dir + '/modes.txt', sep='\t', header=False, index=False,
                 float_format='%.16g')

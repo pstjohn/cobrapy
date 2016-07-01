@@ -96,3 +96,7 @@ def update_cofactors(cobra_model, cofactor_list):
     for met_id in cofactor_list:
         this_met = cobra_model.metabolites.get_by_id(met_id)
         for rxn in this_met.reactions: rxn_cofactor_update(rxn, met_id)
+
+common_cofactors = ['coa', 'nadh', 'nad', 'nadph', 'nadp', 'atp', 'adp', 'amp',
+                    'q8', 'q8h2', 'pi', 'co2', 'h2o', 'h', 'o2', 'h2', 'nh4']
+

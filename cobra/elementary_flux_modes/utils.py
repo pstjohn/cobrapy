@@ -37,7 +37,7 @@ def run_process(process, verbose=True):
     process = subprocess.Popen(process, stdout=stdout, stderr=stderr, bufsize=1)
     if verbose:
         for line in iter(process.stdout.readline, b''):
-            sys.stdout.write(line)
+            sys.stdout.write(line.decode("utf-8"))
             sys.stdout.flush()
         process.stdout.close()
     process.wait()

@@ -1,2 +1,2 @@
-from .flux_layouts import flux_map, common_cofactors
+from .flux_layouts import flux_map
 from .display_tools import *
