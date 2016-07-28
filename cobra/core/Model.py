@@ -177,15 +177,16 @@ class Model(Object):
         reaction_list: A list of :class:`~cobra.core.Reaction` objects
 
         """
+
+        try:
+            reaction_list = DictList(reaction_list)
+        except TypeError:
+            # This function really should not used for single reactions
+            reaction_list = DictList([reaction_list])
+            warn("Use add_reaction for single reactions")
+
         # Only add the reaction if one with the same ID is not already
         # present in the model.
-
-        # # This function really should not used for single reactions
-        # if not hasattr(reaction_list, "__len__"):
-        #     reaction_list = [reaction_list]
-        #     warn("Use add_reaction for single reactions")
-
-        reaction_list = DictList(reaction_list)
         reactions_in_model = [
             i.id for i in reaction_list if self.reactions.has_id(
                 i.id)]

@@ -94,3 +94,5 @@ documentation_builder/test*\.*
 cobra/solvers/cglpk.so.dSYM/
 .DS_Store
 .eggs/
+*\.swp
+manylinux_builder/wheelhouse
