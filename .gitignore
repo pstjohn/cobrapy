@@ -96,3 +96,5 @@ cobra/solvers/cglpk.so.dSYM/
 .eggs/
 *\.swp
 manylinux_builder/wheelhouse
+*~
+venv/

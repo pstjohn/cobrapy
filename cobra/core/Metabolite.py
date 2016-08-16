@@ -29,10 +29,8 @@ class Metabolite(Species):
         name: str
             A human readable name.
 
-        compartment: None or a dictionary indicating the cellular location
-        of the metabolite.  Used when in a cobra.Reaction or Model
-        object
-
+        compartment: str or None
+            Compartment of metabolite.
         """
         Species.__init__(self, id, name)
         self.formula = formula
