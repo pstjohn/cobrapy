@@ -3,8 +3,6 @@ from warnings import warn
 from itertools import chain
 from ast import NodeTransformer
 
-from contextlib import contextmanager
-
 from six import iteritems
 
 from .. import Reaction, Metabolite, Gene
@@ -31,39 +29,6 @@ _renames = (
     ("'", "_SQUOT_"),
     ('"', "_DQUOT_"),
 )
-
-
-def _escape_str_id(id_str):
-    """make a single string id SBML compliant"""
-    for c in ("'", '"'):
-        if id_str.startswith(c) and id_str.endswith(c) \
-                and id_str.count(c) == 2:
-            id_str = id_str.strip(c)
-    for char, escaped_char in _renames:
-        id_str = id_str.replace(char, escaped_char)
-    return id_str
-
-
-class _GeneEscaper(NodeTransformer):
-
-    def visit_Name(self, node):
-        node.id = _escape_str_id(node.id)
-        return node
-
-
-def escape_ID(cobra_model):
-    """makes all ids SBML compliant"""
-    for x in chain([cobra_model],
-                   cobra_model.metabolites,
-                   cobra_model.reactions,
-                   cobra_model.genes):
-        x.id = _escape_str_id(x.id)
-    cobra_model.repair()
-    gene_renamer = _GeneEscaper()
-    for rxn, rule in iteritems(get_compiled_gene_reaction_rules(cobra_model)):
-        if rule is not None:
-            rxn._gene_reaction_rule = ast2str(gene_renamer.visit(rule))
-
 
 def get_growth_medium(cobra_model):
     """Searches a cobra model for the currently active exchange reactions which
@@ -104,6 +69,38 @@ def get_growth_medium(cobra_model):
               is_active(r)}
 
     return medium
+
+def _escape_str_id(id_str):
+    """make a single string id SBML compliant"""
+    for c in ("'", '"'):
+        if id_str.startswith(c) and id_str.endswith(c) \
+                and id_str.count(c) == 2:
+            id_str = id_str.strip(c)
+    for char, escaped_char in _renames:
+        id_str = id_str.replace(char, escaped_char)
+    return id_str
+
+
+class _GeneEscaper(NodeTransformer):
+
+    def visit_Name(self, node):
+        node.id = _escape_str_id(node.id)
+        return node
+
+
+def escape_ID(cobra_model):
+    """makes all ids SBML compliant"""
+    for x in chain([cobra_model],
+                   cobra_model.metabolites,
+                   cobra_model.reactions,
+                   cobra_model.genes):
+        x.id = _escape_str_id(x.id)
+    cobra_model.repair()
+    gene_renamer = _GeneEscaper()
+    for rxn, rule in iteritems(get_compiled_gene_reaction_rules(cobra_model)):
+        if rule is not None:
+            rxn._gene_reaction_rule = ast2str(gene_renamer.visit(rule))
+
 
 def rename_genes(cobra_model, rename_dict):
     """renames genes in a model from the rename_dict"""
@@ -290,7 +287,7 @@ def convert_to_irreversible(cobra_model):
     cobra_model.add_reactions(reactions_to_add)
 
 
-def revert_to_reversible(cobra_model, update_solution=True, allow_missing=False):
+def revert_to_reversible(cobra_model, update_solution=True):
     """This function will convert a reversible model made by
     convert_to_irreversible into a reversible model.
 
@@ -306,94 +303,36 @@ def revert_to_reversible(cobra_model, update_solution=True, allow_missing=False)
         return
 
     update_solution = update_solution and cobra_model.solution is not None \
-        and cobra_model.solution.status not in ["NA", "infeasible"]
+        and cobra_model.solution.status != "NA"
 
     if update_solution:
         x_dict = cobra_model.solution.x_dict
 
-    missing_reactions = []
     for reverse in reverse_reactions:
         forward_id = reverse.notes.pop("reflection")
+        forward = cobra_model.reactions.get_by_id(forward_id)
+        forward.lower_bound = -reverse.upper_bound
+        if forward.upper_bound == 0:
+            forward.upper_bound = -reverse.lower_bound
 
-        try:
-            forward = cobra_model.reactions.get_by_id(forward_id)
-            forward.lower_bound = -reverse.upper_bound
+        # update the solution dict
+        if update_solution:
+            if reverse.id in x_dict:
+                x_dict[forward_id] -= x_dict.pop(reverse.id)
 
-            # update the solution dict
-            if update_solution:
-                if reverse.id in x_dict:
-                    x_dict[forward_id] -= x_dict.pop(reverse.id)
-
-            if "reflection" in forward.notes:
-                forward.notes.pop("reflection")
-
-        except KeyError:
-            if not allow_missing: 
-                raise KeyError(
-                    "Forward reaction {} not found in model".format(
-                        forward_id))
-            else:
-                # Remove 'reflection' tag, as forward reaction is no longer in
-                # the model
-                reverse_reaction.notes.pop("reflection")
-                
-                # Add the reaction to a list of reactions not to remove.
-                missing_reactions += [reverse]
-
+        if "reflection" in forward.notes:
+            forward.notes.pop("reflection")
 
     # Since the metabolites and genes are all still in
     # use we can do this faster removal step.  We can
     # probably speed things up here.
-    cobra_model.remove_reactions(
-        set(reverse_reactions).difference(set(missing_reactions)))
+    cobra_model.remove_reactions(reverse_reactions)
 
     # update the solution vector
     if update_solution:
         cobra_model.solution.x_dict = x_dict
         cobra_model.solution.x = [x_dict[r.id] for r in cobra_model.reactions]
 
-@contextmanager
-def knocked_out(model, ko_list):
-    """Convenience function to temporarily knockout reactions.
-
-    model: a cobra.Model model
-        The original, wild-type model
-
-    ko_list: a list of cobra.Reactions
-        Reactions to knock out
-
-    This function will temporary knockout reactions, and reset them to their
-    original bounds using context management. For example:
-
-    >>> with knocked_out(wt_model, [rxn1, rxn2]) as ko_model:
-    >>>     my_knockout_test(ko_model)
-    >>>
-    >>> my_wt_test(wt_model)
-
-    will knockout reactions rxn1 and rxn2 only within the scope of the with
-    statement.
-
-    """
-    # Correct non-list input
-    if type(ko_list) is not list: ko_list = [ko_list]
-
-    # Store original bounds for later use
-    try:
-        wt_bounds = {rxn : model.reactions.get_by_id(rxn.id).bounds 
-                     for rxn in ko_list}
-    except AttributeError:
-        wt_bounds = {rxn : model.reactions.get_by_id(rxn).bounds 
-                     for rxn in ko_list}
-
-
-    # Knockout reactions (set bounds to zero)
-    for rxn in ko_list: model.reactions.get_by_id(rxn).knock_out()
-
-    # Yield statement for context manager, with-code gets executed here
-    yield model
-
-    # Reset reaction bounds to their original state
-    for rxn in ko_list: model.reactions.get_by_id(rxn).bounds = wt_bounds[rxn]
 
 def canonical_form(model, objective_sense='maximize',
                    already_irreversible=False, copy=True):
