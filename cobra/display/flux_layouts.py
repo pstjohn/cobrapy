@@ -19,7 +19,7 @@ env = Environment(loader=FileSystemLoader(
 def flux_map(cobra_model, 
              excluded_metabolites=None, excluded_reactions=None,
              excluded_compartments=None, display_name_format=True,
-             **kwargs):
+             overwrite_reversibility=True, **kwargs):
     """Create a flux map representation of the cobra.Model, including or
     excluding the given metabolites, reactions, and/or compartments.
 
@@ -56,6 +56,11 @@ def flux_map(cobra_model,
     hide_unused_cofactors:
         similar to hide_unused, but only hide cofactor nodes for reactions with
         0 flux.
+
+    overwrite_reversibility:
+        whether or not to overwrite the `reversibility` attribute in map_info.
+        Useful in ensuring reversible, knocked-out reactions are rendered
+        appropriately. Defaults to True.
 
     figsize:
         size, in pixels, of the generated SVG window. Defaults to 1024x768.
@@ -115,11 +120,13 @@ def flux_map(cobra_model,
 
     for reaction in cobra_model.reactions:
         
-        try:
-            reaction.notes['map_info']['reversibility'] = reaction.reversibility
-        except KeyError:
-            reaction.notes['map_info'] = {
-                'reversibility': reaction.reversibility}
+        if overwrite_reversibility:
+            try:
+                reaction.notes['map_info']['reversibility'] = \
+                reaction.reversibility
+            except KeyError:
+                reaction.notes['map_info'] = {
+                    'reversibility': reaction.reversibility}
 
         # Hide reactions if all of their products or reactants are hidden
         if (all([is_hidden(met) for met in reaction.reactants]) or
@@ -162,17 +169,17 @@ def create_model_json(cobra_model):
         try:
             # If I'm styling reaction knockouts, don't set the flux for a
             # knocked out reaction
-            try: 
-                if reaction.notes['map_info']['group'] == 'ko': 
-                    # Delete the flux key, if it exists
-                    try: del reaction.notes['map_info']['flux']
-                    except Exception: pass
-
-                    # Onto the next reaction
-                    continue
-
-            # Onto the next reaction
-            except KeyError: pass
+            # try: 
+            #     if reaction.notes['map_info']['group'] == 'ko': 
+            #         # Delete the flux key, if it exists
+            #         try: del reaction.notes['map_info']['flux']
+            #         except Exception: pass
+            #
+            #         # Onto the next reaction
+            #         continue
+            #
+            # # Onto the next reaction
+            # except KeyError: pass
 
             reaction.notes['map_info']['flux'] = reaction.x
 
