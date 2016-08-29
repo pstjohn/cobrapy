@@ -682,7 +682,7 @@ class Reaction(Object):
             warn("no model found")
             model = None
         else:
-            model = self._model
+            model = self._model if self._model else model
         found_compartments = compartment_finder.findall(reaction_str)
         if len(found_compartments) == 1:
             compartment = found_compartments[0]
