@@ -602,7 +602,8 @@ class Reaction(Object):
 
     def build_reaction_from_string(self, reaction_str, verbose=True,
                                    fwd_arrow=None, rev_arrow=None,
-                                   reversible_arrow=None, term_split="+"):
+                                   reversible_arrow=None, term_split="+",
+                                   model=None):
         """Builds reaction from reaction equation reaction_str using parser
 
         Takes a string and using the specifications supplied in the optional
@@ -610,18 +611,25 @@ class Reaction(Object):
         stoichiometries for the reaction.  It also infers the reversibility
         of the reaction from the reaction arrow.
 
-        Args:
-            reaction_str: a string containing a reaction formula (equation)
-            verbose: Boolean setting verbosity of function
-                (optional, default=True)
-            fwd_arrow: re.compile for forward irreversible reaction arrows
-                (optional, default=_forward_arrow_finder)
-            reverse_arrow: re.compile for backward irreversible reaction arrows
-                (optional, default=_reverse_arrow_finder)
-            fwd_arrow: re.compile for reversible reaction arrows
-                (optional, default=_reversible_arrow_finder)
-            term_split: String dividing individual metabolite entries
-                (optional, default='+')
+        reaction_str: a string containing a reaction formula (equation)
+
+        verbose: Boolean setting verbosity of function
+            (optional, default=True)
+
+        fwd_arrow: re.compile for forward irreversible reaction arrows
+            (optional, default=_forward_arrow_finder)
+            
+        reverse_arrow: re.compile for backward irreversible reaction arrows
+            (optional, default=_reverse_arrow_finder)
+
+        fwd_arrow: re.compile for reversible reaction arrows
+            (optional, default=_reversible_arrow_finder)
+            
+        term_split: String dividing individual metabolite entries
+            (optional, default='+')
+
+        model: a cobra.Model object
+            (optional, default=None)
         """
         # set the arrows
         forward_arrow_finder = _forward_arrow_finder if fwd_arrow is None \
@@ -631,11 +639,11 @@ class Reaction(Object):
         reversible_arrow_finder = _reversible_arrow_finder \
             if reversible_arrow is None \
             else re.compile(re.escape(reversible_arrow))
-        if self._model is None:
+        if (self._model is None) and (model is None):
             warn("no model found")
             model = None
         else:
-            model = self._model
+            model = model if model else self._model
         found_compartments = compartment_finder.findall(reaction_str)
         if len(found_compartments) == 1:
             compartment = found_compartments[0]

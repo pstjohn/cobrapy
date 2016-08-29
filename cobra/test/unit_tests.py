@@ -367,6 +367,9 @@ class TestReactions(CobraTestCase):
         self.assertIn("foo", model.metabolites)
         self.assertIn(model.metabolites.foo, pgi._metabolites)
         self.assertEqual(len(model.metabolites), m + 1)
+        test_rxn = Reaction('test_rxn')
+        test_rxn.build_reaction_from_string("g6p_c --> f6p_c", model=model)
+        self.assertIn(model.metabolites.g6p_c, test_rxn.metabolites)
 
     def test_copy(self):
         model = self.model
