@@ -4,7 +4,7 @@ from __future__ import absolute_import
 
 from os.path import abspath, dirname, join
 
-from cobra.io import read_sbml_model
+from cobra.io import read_sbml_model, load_yaml_model
 
 try:
     import pytest
@@ -38,6 +38,8 @@ def create_test_model(model_name="salmonella"):
     elif model_name == "mini":
         mini_sbml = join(data_dir, "mini_fbc2.xml")
         return read_sbml_model(mini_sbml)
+    elif model_name == "simple":
+        return load_yaml_model(join(data_dir, "simple.yaml"))
     elif model_name == "salmonella":
         salmonella_pickle = join(data_dir, "salmonella.pickle")
         model_name = salmonella_pickle
